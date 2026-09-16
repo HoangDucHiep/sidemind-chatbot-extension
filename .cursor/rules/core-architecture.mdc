@@ -1,0 +1,65 @@
+---
+description: Kiến trúc cốt lõi của SideMind — no-backend, ID stable, tiếng Việt, không phá outline. Áp dụng cho mọi thay đổi trong project.
+globs:
+alwaysApply: true
+---
+
+# SideMind — Core Architecture Rules
+
+## 1. No-backend, client-side only (NEVER VIOLATE)
+
+- KHÔNG thêm server, proxy, database, hay bất kỳ thành phần backend nào do nhóm phát triển.
+- Mọi xử lý chạy trong browser process: Service Worker + Content Script + Side Panel.
+- AI Provider API gọi trực tiếp qua HTTPS từ trình duyệt user.
+- File/ảnh (FR-12) xử lý ở client (FileReader, pdf.js, mammoth.js, SheetJS) — KHÔNG upload qua proxy.
+- Lý do: privacy, cost transparency, zero-ops, vendor neutrality, open-source friendly.
+
+Nếu user yêu cầu thêm backend → **dừng lại** và giải thích tại sao FR-12 đã giải quyết client-side.
+
+## 2. ID ổn định (Immutable IDs)
+
+| Prefix | Range hiện tại | Quy tắc |
+|---|---|---|
+| FR | FR-01 → FR-13 | KHÔNG re-number. Thêm mới → số tiếp theo. |
+| NFR | NFR-01 → NFR-09 | KHÔNG re-number. |
+| Hình | Hình 1 → Hình 8 | KHÔNG re-number diagram. |
+
+Khi xóa ID, đánh dấu `**[DEPRECATED]**` trong text, giữ số.
+
+## 3. Ngôn ngữ giao tiếp
+
+- **Tiếng Việt** cho documentation (SRS, SDS), UI string, comment giải thích.
+- **Tiếng Anh** cho code (variable, function, class names) theo convention TypeScript.
+- **Tiếng Việt** cho mô tả FR / NFR trong docs.
+
+## 4. Cấu trúc SRS / SDS
+
+### Giữ outline
+- SRS có **4 section chính**: Giới thiệu, Mô tả tổng quát, Yêu cầu cụ thể, Phụ lục.
+- SRS có **Mục lục** đầy đủ — khi thêm section mới, cập nhật cả Mục lục.
+- Không ghi đè toàn bộ file — dùng `StrReplace` riêng lẻ.
+
+### Cross-reference
+- Khi thêm FR-14, kiểm tra: SDS có chỗ nào tham chiếu FR-14 không? Nếu chưa có, thêm vào SDS Appendix A Traceability Matrix.
+- Khi sửa một FR, đọc các section khác có đề cập FR đó và cập nhật đồng bộ.
+
+### Versioning
+- Thêm FR mới → bump version (`0.3.0` → `0.4.0`).
+- Sửa wording FR cũ → bump patch (`0.3.0` → `0.3.1`).
+- Cập nhật số FR/NFR trong §1.5 tổng quan khi thêm.
+
+## 5. Privacy & Security defaults
+
+- API key mã hóa AES-GCM-256 trước khi lưu `chrome.storage.local`.
+- Không log API key, conversation content, file content ra console.
+- File binary KHÔNG bao giờ lưu persistent — chỉ metadata trong `chrome.storage`.
+- Telemetry OFF mặc định (FR-09).
+
+## 6. Khi nào cần hỏi user trước khi sửa
+
+- Thay đổi kiến trúc (thêm backend, đổi storage strategy).
+- Re-number ID đã có.
+- Thay đổi FR-01 → FR-10 (core features đã chốt).
+- Sửa decision "no-backend" hoặc "MIT license".
+
+Nếu nằm ngoài các case trên → có thể tự quyết và thực hiện.

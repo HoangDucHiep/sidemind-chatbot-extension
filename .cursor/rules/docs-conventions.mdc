@@ -1,0 +1,107 @@
+---
+description: Quy ước chỉnh sửa docs/SRS.md và docs/SDS.md — giữ Mục lục, Mermaid diagrams, cross-reference, tiếng Việt heading.
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# SideMind — Documentation Conventions
+
+Áp dụng khi sửa bất kỳ file `.md` nào trong `docs/`.
+
+## 1. Cấu trúc bắt buộc giữ nguyên
+
+### SRS (docs/SRS.md)
+```
+1. Giới thiệu
+   1.1 Mục đích
+   1.2 Phạm vi
+   1.3 Định nghĩa, từ viết tắt
+   1.4 Tài liệu tham khảo
+   1.5 Tổng quan tài liệu
+2. Mô tả tổng quát
+   2.1 → 2.6
+3. Yêu cầu cụ thể
+   3.1 Yêu cầu giao diện bên ngoài
+   3.2 Yêu cầu chức năng  ← FR-01 → FR-13
+   3.3 Yêu cầu phi chức năng  ← NFR-01 → NFR-09
+   3.4 Ràng buộc thiết kế
+   3.5 Thuộc tính hệ thống
+   3.6 Yêu cầu khác
+4. Phụ lục
+   A. Bảng so sánh
+   B. Permission Justification
+   C. Open Issues & Risks
+```
+
+### SDS (docs/SDS.md)
+```
+1. Introduction
+2. Architectural Design
+3. Data Design
+4. Component Design
+5. Interface Design
+6. Human-Machine Interface Design
+7. Appendices
+```
+
+## 2. Heading rules
+
+- **Tiếng Việt** cho tất cả heading trong SRS (giữ nguyên bản chất tự nhiên, đúng ngữ pháp).
+- **Tiếng Anh** cho heading trong SDS (IEEE 1016-2009 convention).
+- **Không thêm heading level 5/6** trong SRS — mọi nội dung phải gọn trong heading đã có.
+- Khi cần nhóm bullet dài, dùng `<details>` hoặc sub-bullet `  - ...` thay vì tạo heading mới.
+
+## 3. Mermaid diagrams
+
+- Giữ **8 diagrams** của SRS (Hình 1 → Hình 8).
+- Số Hình **cố định** — không đổi khi sửa nội dung.
+- Khi thêm diagram mới → dùng số tiếp theo, đăng ký vào Appendix B Diagrams Index trong SDS.
+- Không gộp 2 Hình thành 1.
+- Format caption: `**Hình N**: <mô tả>` ngay sau code block mermaid.
+
+### Mermaid syntax rules (theo system rule)
+- Không space trong node IDs: `UserService` chứ không phải `User Service`.
+- Edge labels có ký tự đặc biệt → quote: `A -->|"O(1) lookup"| B`.
+- Không dùng `style` / `classDef` / `fill:#fff` — để theme tự render.
+- Subgraph phải có explicit ID: `subgraph id [Label]`.
+
+## 4. FR / NFR template
+
+Mỗi FR phải theo template chuẩn:
+
+```markdown
+#### FR-XX: <Title>
+
+| | |
+|---|---|
+| **Mô tả** | <mô tả ngắn gọn> |
+| **Priority** | MUST / SHOULD / MAY |
+| **Acceptance criteria** | (1) ... (2) ... (3) ... |
+```
+
+NFR template tương tự, có thêm dòng `**Metric**`.
+
+## 5. ID cross-reference
+
+Khi viết FR/NFR mới:
+1. Đọc `docs/SDS.md` Appendix A Traceability Matrix — nếu FR-xx đã có row ở đó, cập nhật SDS cùng lúc.
+2. Đọc `docs/SRS.md` §2.2 Hình 1 use-case diagram — nếu thêm use case mới, thêm node vào diagram.
+3. Đọc `docs/SRS.md` §3.1.5 Hình 6 storage ER — nếu FR liên quan tới entity mới, thêm entity.
+
+## 6. Thay đổi phải atomic
+
+- Một lần `StrReplace` = một thay đổi logic. Không gộp nhiều FR vào một replace.
+- Không ghi đè toàn bộ file (trừ khi user explicitly yêu cầu "viết lại").
+- Giữ indentation gốc (tabs hoặc spaces) của file.
+
+## 7. Bảng Markdown
+
+- Cột đầu tiên cho label, cột thứ 2 cho value (FR/NFR).
+- Bảng so sánh (Phụ lục A) cố định 26 dòng trở lên — không xóa dòng, chỉ thêm.
+- Bảng ER (Hình 6) trong code block `mermaid erDiagram` — không chuyển sang bảng Markdown.
+
+## 8. Khi viết lại / restructure
+
+- Đánh version mới ở header (vd `0.3.0 → 0.4.0`).
+- Ghi chú trong `**Trạng thái**` ngắn gọn: "Draft — bổ sung FR-XX, NFR-YY".
+- Nếu phá vỡ outline cũ: thêm đoạn "Lịch sử thay đổi" ở cuối file liệt kê migration.

@@ -1,0 +1,171 @@
+---
+description: TypeScript / React coding standards cho SideMind — strict mode, module pattern, no magic.
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript Standards
+
+## 1. Compiler config (tsconfig.json)
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  }
+}
+```
+
+## 2. Type safety rules
+
+### ❌ BAD
+```typescript
+const data: any = await fetchData();
+const name = data.user.name;  // crashes if data is null
+```
+
+### ✅ GOOD
+```typescript
+type FetchResult = { user: { name: string } } | null;
+const data: FetchResult = await fetchData();
+if (!data) throw new DataFetchError('Empty response');
+const name = data.user.name;  // type-safe
+```
+
+## 3. No unsafe patterns
+
+- **NO** `eval()`, `new Function()`, `setTimeout(string)` — Chrome MV3 CSP cấm.
+- **NO** `any` — dùng `unknown` rồi narrow, hoặc explicit type.
+- **NO** `as any` cast — dùng `as SpecificType` hoặc type guard.
+- **NO** `// @ts-ignore` — dùng `// @ts-expect-error` với lý do cụ thể.
+- **NO** non-null assertion `!` trừ khi đã check trước đó trong cùng scope.
+
+## 4. Module structure
+
+Mỗi module trong `src/core/<name>/` theo structure:
+
+```
+context-engine/
+├── index.ts              # public interface (re-export)
+├── types.ts              # types & interfaces
+├── context-engine.ts     # main class/function
+└── pipelines/
+    ├── youtube.pipeline.ts
+    ├── article.pipeline.ts
+    ├── pdf.pipeline.ts
+    ├── docs.pipeline.ts
+    └── general.pipeline.ts
+```
+
+### Public interface rule
+- `index.ts` chỉ re-export, không có logic.
+- Internal modules được import qua barrel file.
+- Plugin (pipelines, adapters) implement một `interface` rõ ràng.
+
+## 5. Function conventions
+
+```typescript
+// Pure functions preferred
+export async function extractContext(
+  tabId: number,
+  options: ExtractOptions = {}
+): Promise<PageContext> {
+  // ...
+}
+
+// Async functions must return Promise<T>, not Promise<T | undefined>
+// Use Result<T, E> pattern cho errors thay vì throw
+type Result<T, E = Error> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+```
+
+## 6. React conventions
+
+### Component
+- Functional component với TypeScript:
+  ```tsx
+  interface ChatMessageProps {
+    role: 'user' | 'assistant';
+    content: string;
+    citations?: Citation[];
+  }
+  export function ChatMessage({ role, content, citations }: ChatMessageProps) {
+    // ...
+  }
+  ```
+- Không dùng `React.FC` (deprecated pattern).
+- Props destructuring ngay trong signature.
+
+### Hooks
+- Custom hook prefix `use`: `useConversation`, `useSettings`, `useFileAttachment`.
+- Trả về tuple `[state, actions]` hoặc object — chọn 1 style và giữ nhất quán.
+
+### State management
+- Zustand store mỗi concern: `useConversationStore`, `useSettingsStore`, `useFileStore`.
+- Không put logic trong component — put trong store hoặc hook.
+
+## 7. Error handling
+
+```typescript
+// Custom error class
+export class ContextExtractionError extends Error {
+  constructor(
+    message: string,
+    public readonly url: string,
+    public readonly cause?: unknown
+  ) {
+    super(message, { cause });
+    this.name = 'ContextExtractionError';
+  }
+}
+
+// Catch + log + rethrow
+try {
+  await extract(tabId);
+} catch (e) {
+  logger.error('Context extraction failed', { tabId, error: e });
+  if (e instanceof ContextExtractionError) {
+    throw e;  // already typed
+  }
+  throw new ContextExtractionError('Unknown failure', url, e);
+}
+```
+
+## 8. Testing
+
+- File test: `*.test.ts` cùng thư mục với file gốc, hoặc `__tests__/` folder.
+- Mỗi FR có ít nhất 1 acceptance test mapped.
+- Test name theo pattern: `describe('extractContext', () => { it('returns Article context for schema.org page', () => {...}) })`.
+- Mock external calls (chrome APIs, fetch) bằng `vi.mock`.
+
+## 9. Comments
+
+- Tiếng Việt cho comment giải thích WHY (business logic, decision rationale).
+- Tiếng Anh cho JSDoc public API.
+- TODO format: `// TODO(fr-XX): <mô tả>` — link về FR cụ thể.
+
+## 10. Imports
+
+```typescript
+// 1. External packages (React, libraries)
+import { useState } from 'react';
+import { z } from 'zod';
+
+// 2. Internal aliases (@core, @components, etc.)
+import { ContextEngine } from '@core/context-engine';
+import { ChatMessage } from '@components/ChatMessage';
+
+// 3. Relative imports (chỉ khi cùng module)
+import { helper } from './helper';
+```
+
+Đăng ký alias `@core`, `@components`, `@lib` trong `tsconfig.json` paths.

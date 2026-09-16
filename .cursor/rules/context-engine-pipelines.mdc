@@ -1,0 +1,186 @@
+---
+description: Context Engine pipeline rules — 5 pipeline riêng biệt (YouTube / Article / PDF / Docs / General), không được collapse thành 1.
+globs: src/core/context-engine/**,src/core/multi-tab/**,src/core/file-extractor/**
+alwaysApply: false
+---
+
+# Context Engine Pipeline Rules
+
+> **Lý do tồn tại của rule này**: SRS FR-04 acceptance #2 nói rõ "có 4 pipeline riêng cho 4 page type chính, cộng thêm General fallback = 5 pipelines". Mỗi pipeline có cơ chế riêng vì cấu trúc DOM và nguồn nội dung khác nhau. **Dùng chung 1 pipeline cho mọi trang chỉ cho kết quả trung bình** — đây là điểm khác biệt cốt lõi với Copilot Edge và Gemini Chrome.
+
+## 1. Cấu trúc bắt buộc
+
+```
+src/core/context-engine/
+├── index.ts                  # Public interface ContextEngine
+├── types.ts                  # PageType, PageContext, Sentence, ...
+├── classifier.ts             # URL/DOM → PageType
+├── pipelines/
+│   ├── base.pipeline.ts      # Abstract class hoặc interface chung
+│   ├── youtube.pipeline.ts   # FR-04 acceptance #5
+│   ├── article.pipeline.ts   # FR-04 acceptance #4
+│   ├── pdf.pipeline.ts       # FR-04 acceptance #6
+│   ├── docs.pipeline.ts      # FR-04 acceptance #7
+│   └── general.pipeline.ts   # FR-04 acceptance #8 (fallback)
+├── noise-filter.ts           # FR-04 acceptance #9 (shared)
+├── chunker.ts                # 512-token chunks
+└── multi-tab-coordinator.ts  # FR-11 orchestration
+```
+
+## 2. PageType enum
+
+```typescript
+export type PageType = 'youtube' | 'article' | 'pdf' | 'docs' | 'general';
+```
+
+KHÔNG:
+- Thêm page type mới mà không có acceptance criteria rõ ràng trong SRS.
+- Xóa page type — chỉ đánh `**[DEPRECATED]**`.
+- Collapse 2 pipeline thành 1 dù có overlap.
+
+## 3. Pipeline interface (chung)
+
+```typescript
+export interface ContextPipeline {
+  /** Page types mà pipeline này handle */
+  readonly handles: PageType[];
+
+  /** Check xem pipeline có thể xử lý URL/document này không */
+  matches(url: string, document: Document): boolean;
+
+  /** Trích xuất context — pipeline-specific logic */
+  extract(input: ExtractInput): Promise<PageContext>;
+}
+
+export interface ExtractInput {
+  url: string;
+  document?: Document;          // undefined nếu cross-origin
+  binaryBuffer?: ArrayBuffer;   // cho PDF
+  fetchText?: (url: string) => Promise<string>;  // cho YouTube timedtext
+}
+```
+
+## 4. Đặc điểm riêng từng pipeline
+
+### 4.1 YouTube Pipeline (`youtube.pipeline.ts`)
+- Lấy videoId từ URL regex `/watch\?v=([\w-]+)/`.
+- Fetch `https://www.youtube.com/api/timedtext?type=list&v=<id>` → parse XML để lấy danh sách track.
+- Chọn track đầu tiên có `lang` match user preference (default: video's default).
+- Fetch `fmt=json3` → parse `events[].segs[].utf8` thành cues.
+- Group cues ngắn (2-4s) thành paragraphs 10-15s.
+- **Fallback** nếu không có caption: `og:title + og:description`.
+- Caption là **timestamped dialogue** — không phải paragraph HTML.
+
+### 4.2 Article Pipeline (`article.pipeline.ts`)
+- Dùng Mozilla **Readability.js** (`@mozilla/readability`).
+- Sau khi parse, áp **noise-filter** chung:
+  - Loại cookie banner.
+  - Loại related articles / "You may also like".
+  - Loại comment section (`<div id="comments">`, Disqus iframe).
+  - Loại share buttons, social widgets.
+- Giữ article body + author + date + og:image.
+
+### 4.3 PDF Pipeline (`pdf.pipeline.ts`)
+- Chrome render `*.pdf` thành canvas trong `chrome-extension://` viewer — **content script KHÔNG inject được**.
+- Phải fetch binary PDF qua `fetch(url)` → `arrayBuffer`.
+- Parse bằng `pdfjs-dist` (`getDocument`, `getPage`, `getTextContent`).
+- **Preserve page order** — không sort theo relevance.
+- Chunk mỗi page riêng, giữ page number metadata.
+
+### 4.4 Docs Pipeline (`docs.pipeline.ts`)
+- Heuristic detect: domain thuộc whitelist (`docs.python.org`, `developer.mozilla.org`, `github.com/<owner>/<repo>`, `devdocs.io`, ...) HOẶC schema.org `TechArticle` HOẶc tỉ lệ `<pre>` + `<code>` > 15% content.
+- **Readability.js SẼ strip code blocks** vì tính theo readability score của prose → không dùng Readability.
+- Custom extraction:
+  - Giữ `<pre>`, `<code>` nguyên văn (không trim whitespace).
+  - Giữ heading hierarchy (`<h1>` → `<h6>`).
+  - Lấy API signature từ `<code class="signature">` nếu có.
+  - Loại nav sidebar, footer, "Edit on GitHub" link.
+
+### 4.5 General Pipeline (`general.pipeline.ts`)
+- Fallback khi classifier không match 4 pipeline trên.
+- Readability.js với **threshold thấp** (lấy nhiều hơn).
+- Sau đó DOM scoring heuristic: tính text density, loại element có nhiều link.
+
+## 5. Classifier rules
+
+```typescript
+export function classify(url: string, document?: Document): PageType {
+  if (/youtube\.com\/watch/.test(url)) return 'youtube';
+  if (url.endsWith('.pdf') || document?.contentType === 'application/pdf') return 'pdf';
+
+  // Docs heuristic
+  const DOCS_DOMAINS = ['docs.python.org', 'developer.mozilla.org', 'devdocs.io'];
+  if (DOCS_DOMAINS.some(d => url.includes(d))) return 'docs';
+
+  // Article heuristic — schema.org Article hoặc Open Graph type=article
+  const ogType = document?.querySelector('meta[property="og:type"]')?.getAttribute('content');
+  if (ogType === 'article') return 'article';
+
+  return 'general';
+}
+```
+
+Pipeline matching phải là `pipeline.matches(url, document)` return true TRƯỚC khi pipeline được chọn.
+
+## 6. Multi-tab coordinator (FR-11)
+
+```typescript
+export interface TabContextSource {
+  tabId: number;
+  url: string;
+  title: string;
+  status: 'pending' | 'extracting' | 'ready' | 'error';
+  pageContext?: PageContext;
+  error?: string;
+}
+
+export class MultiTabCoordinator {
+  async addTab(tabId: number): Promise<void> { /* ... */ }
+  async removeTab(tabId: number): Promise<void> { /* ... */ }
+  async getAll(): Promise<TabContextSource[]> { /* ... */ }
+  estimateTotalTokens(): number { /* sum of all sources */ }
+}
+```
+
+Khi add tab → classifier → pipeline → cache lại trong coordinator. KHÔNG re-extract khi chỉ switch tab.
+
+## 7. File extractor (FR-12) — tách module riêng
+
+KHÔNG nhầm với pipelines ở trên. File extractor xử lý **local file** (input từ `<input type="file">`), không phải URL:
+
+```
+src/core/file-extractor/
+├── index.ts                  # FileExtractor interface
+├── image.extractor.ts        # PNG/JPG/GIF/WebP → base64
+├── text.extractor.ts         # txt/md/csv/json/log → string
+├── pdf.extractor.ts          # PDF (tái sử dụng pdfjs-dist)
+├── docx.extractor.ts         # mammoth.js
+├── xlsx.extractor.ts         # SheetJS
+└── pptx.extractor.ts         # internal parser
+```
+
+## 8. Test rules
+
+Mỗi pipeline phải có test riêng:
+
+```
+src/core/context-engine/__tests__/
+├── youtube.pipeline.test.ts
+├── article.pipeline.test.ts
+├── pdf.pipeline.test.ts
+├── docs.pipeline.test.ts
+└── general.pipeline.test.ts
+```
+
+Test phải cover:
+- Happy path (input thật).
+- Fallback path (caption missing, Readability fail).
+- Edge cases (empty content, very long page, cross-origin).
+
+## 9. Không được làm
+
+- ❌ Tạo 1 "mega pipeline" handle tất cả PageType.
+- ❌ Hard-code URL list trong pipeline — dùng classifier + matches().
+- ❌ Throw error khi extract fail — return `{ status: 'error', error: '...' }` để UI hiển thị.
+- ❌ Re-extract context cho cùng URL trong cùng session — dùng ContextCache (LRU).
+- ❌ Save raw HTML/DOM vào PageContext — chỉ lưu text + sentences.
