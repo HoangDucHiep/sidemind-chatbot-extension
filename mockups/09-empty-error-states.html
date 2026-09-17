@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 09 — Empty & Error States</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-4) var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); background: var(--paper); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .brand-mini { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .brand-mini .mark { color: var(--accent); font-style: italic; }
+
+    .container { padding: var(--space-8) var(--space-6); }
+    h1 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; margin-bottom: var(--space-2); }
+    .h-sub { font-family: var(--font-ui); font-size: var(--fs-md); color: var(--muted); margin-bottom: var(--space-8); max-width: 720px; }
+
+    .err-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); }
+    @media (max-width: 768px) { .err-grid { grid-template-columns: 1fr; } }
+
+    .err-card { border: var(--hairline); background: var(--paper); min-height: 420px; display: flex; flex-direction: column; }
+    .err-card-head { padding: var(--space-3) var(--space-4); border-bottom: var(--hairline); display: flex; align-items: center; justify-content: space-between; }
+    .err-card-head .label { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+    .err-card-head .tag { font-family: var(--font-mono); font-size: var(--fs-xs); padding: 2px 6px; border: 1px solid var(--rule); }
+    .err-card-body { flex: 1; padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-4); align-items: center; justify-content: center; text-align: center; }
+
+    .err-icon { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); margin: 0 auto; }
+    .err-icon svg { width: 36px; height: 36px; }
+    .err-icon.accent { border-color: var(--accent); color: var(--accent); }
+    .err-icon.muted { border-color: var(--muted); color: var(--muted); }
+
+    .err-h { font-family: var(--font-heading); font-style: italic; font-weight: 600; font-size: var(--fs-2xl); line-height: 1.2; }
+    .err-p { font-family: var(--font-ui); font-size: var(--fs-md); line-height: 1.55; color: var(--muted); max-width: 360px; }
+    .err-body-mono { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); }
+    .err-cta { padding: var(--space-3) var(--space-6); border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font-family: var(--font-mono); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; }
+    .err-cta:hover { background: var(--accent); border-color: var(--accent); }
+    .err-cta.ghost { background: transparent; color: var(--ink); }
+    .err-cta.ghost:hover { background: var(--ink); color: var(--paper); }
+
+    /* Countdown */
+    .countdown { font-family: var(--font-mono); font-size: var(--fs-3xl); font-weight: 700; color: var(--accent); padding: var(--space-2) var(--space-4); border: 2px solid var(--accent); background: var(--paper); display: inline-block; }
+    .countdown-label { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+
+    /* State code badge */
+    .state-code { padding: var(--space-1) var(--space-2); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--accent); display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand-mini">Side<span class="mark">Mind</span> · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Mockups</span></span>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="text-mono-uppercase mb-2">Mockup · 09</div>
+    <h1>Empty & Error States</h1>
+    <p class="h-sub">Four states a user may encounter when chat fails for different reasons. Each renders a clear recovery action — never raw stack traces, never alarming colors (vermilion reserved for actionable items).</p>
+
+    <div class="err-grid">
+      <!-- 1. No API key -->
+      <div class="err-card">
+        <div class="err-card-head">
+          <span class="label">01 · No API key</span>
+          <span class="tag">FR-02</span>
+        </div>
+        <div class="err-card-body">
+          <div class="err-icon muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 7a4 4 0 1 0-6 0 M19 21v-1a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v1"/><line x1="2" y1="2" x2="22" y2="22" stroke-dasharray="4 2"/></svg>
+          </div>
+          <div class="err-h" data-i18n-key="err.noKey.title">Set up your API key to start.</div>
+          <p class="err-p" data-i18n-key="err.noKey.body">SideMind needs at least one valid key to reach an AI provider.</p>
+          <a class="err-cta" href="04-options-api-keys.html" data-i18n-key="err.noKey.cta">Open settings →</a>
+          <div class="font-mono text-xs text-muted">NFR-03 #3 fallback messaging · no panic tone</div>
+        </div>
+      </div>
+
+      <!-- 2. Network offline -->
+      <div class="err-card">
+        <div class="err-card-head">
+          <span class="label">02 · Network offline</span>
+          <span class="tag">NFR-03 #2</span>
+        </div>
+        <div class="err-card-body">
+          <div class="err-icon muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <!-- cloud with slash -->
+              <path d="M3 15a4 4 0 0 1 4-4h10a4 4 0 0 1 0 8H6a4 4 0 0 1-3-4z" fill="currentColor" fill-opacity="0.1"/>
+              <line x1="2" y1="2" x2="22" y2="22" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="err-h" data-i18n-key="err.network.title">No connection.</div>
+          <p class="err-p" data-i18n-key="err.network.body">SideMind needs internet to reach your AI provider.</p>
+          <button class="err-cta" id="retry-network" data-i18n-key="err.network.retry">↺ Retry</button>
+          <div class="font-mono text-xs text-muted">onLine === false · NFR-03 #2</div>
+        </div>
+      </div>
+
+      <!-- 3. Quota exceeded -->
+      <div class="err-card">
+        <div class="err-card-head">
+          <span class="label">03 · Quota exceeded</span>
+          <span class="tag">NFR-03 #3</span>
+        </div>
+        <div class="err-card-body" style="border-color: var(--accent); border-style: solid; border-width: 0 0 0 2px;">
+          <div class="err-icon accent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/></svg>
+          </div>
+          <div class="err-h" data-i18n-key="err.quota.title">Rate limit reached.</div>
+          <div class="countdown" id="countdown">00:58</div>
+          <div class="countdown-label" id="countdown-label">seconds until retry</div>
+          <p class="err-body-mono" data-i18n-key="err.quota.body" id="quota-body">Provider responded with 429. Try again in 58 seconds, or rotate the key.</p>
+          <div><span class="state-code">HTTP 429</span></div>
+        </div>
+      </div>
+
+      <!-- 4. Extraction failed -->
+      <div class="err-card">
+        <div class="err-card-head">
+          <span class="label">04 · Extraction failed</span>
+          <span class="tag">FR-04 #2 / NFR-04</span>
+        </div>
+        <div class="err-card-body">
+          <div class="err-icon muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="4" width="18" height="16"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="7"/><line x1="15" y1="3" x2="15" y2="7"/>
+              <line x1="7" y1="14" x2="13" y2="14" stroke-dasharray="2 2"/>
+            </svg>
+          </div>
+          <div class="err-h" data-i18n-key="err.extract.title">Couldn't read this page.</div>
+          <p class="err-p" data-i18n-key="err.extract.body">Try refreshing, or open a different article. Use without context as a fallback.</p>
+          <div style="display: flex; gap: var(--space-2);">
+            <button class="err-cta ghost" data-i18n-key="err.extract.cta">Continue without context</button>
+            <button class="err-cta" style="background: var(--accent); border-color: var(--accent);">↻ Refresh</button>
+          </div>
+          <div class="font-mono text-xs text-muted">FR-04 fallback · Readability pipeline error</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setTheme(btn.getAttribute('data-theme-btn'));
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Countdown timer (quota state)
+    let seconds = 58;
+    const el = document.getElementById('countdown');
+    const label = document.getElementById('countdown-label');
+    const body = document.getElementById('quota-body');
+    const isVi = () => SideMind.getLang() === 'vi';
+    function fmt(s) {
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      return `${mm}:${ss}`;
+    }
+    setInterval(() => {
+      if (seconds <= 0) return;
+      seconds -= 1;
+      el.textContent = fmt(seconds);
+      label.textContent = isVi() ? 'giây trước khi thử lại' : 'seconds until retry';
+      // Update body message with current seconds
+      const lang = isVi();
+      body.textContent = lang
+        ? `Provider trả 429. Thử lại sau ${seconds} giây, hoặc xoay key.`
+        : `Provider responded with 429. Try again in ${seconds} seconds, or rotate the key.`;
+    }, 1000);
+
+    // Retry button
+    document.getElementById('retry-network').addEventListener('click', () => {
+      const t = document.getElementById('toast');
+      t.textContent = isVi() ? '↻ Đang thử lại kết nối…' : '↻ Retrying connection…';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    });
+  </script>
+</body>
+</html>

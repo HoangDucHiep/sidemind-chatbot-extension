@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 06 — Options · Privacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-4) var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); background: var(--paper); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .brand-mini { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .brand-mini .mark { color: var(--accent); font-style: italic; }
+
+    .options-frame { max-width: var(--options-width); margin: 0 auto; padding: var(--space-6); }
+    .tabs { display: flex; gap: 0; border-bottom: var(--hairline); margin-bottom: var(--space-8); }
+    .tab { padding: var(--space-3) var(--space-6); font-family: var(--font-ui); font-size: var(--fs-sm); font-weight: 500; background: transparent; color: var(--muted); border: 0; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; text-decoration: none; }
+    .tab:hover { color: var(--ink); }
+    .tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+    h1 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; margin-bottom: var(--space-8); }
+
+    .privacy-section { padding: var(--space-6) 0; border-bottom: var(--hairline); display: grid; grid-template-columns: 240px 1fr; gap: var(--space-8); }
+    .privacy-section:last-of-type { border-bottom: 0; }
+    .privacy-label { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); }
+
+    .toggle-row { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-3); }
+    .toggle { position: relative; display: inline-block; width: 44px; height: 24px; background: var(--paper); border: 1px solid var(--ink); cursor: pointer; flex-shrink: 0; }
+    .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: var(--ink); transition: transform var(--motion-fast); }
+    .toggle[aria-checked="true"]::after { transform: translateX(20px); }
+    .toggle[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+    .toggle-label { font-family: var(--font-ui); font-size: var(--fs-md); }
+
+    .badge { display: inline-flex; align-items: center; padding: 2px var(--space-2); border: 1px solid var(--ink); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; }
+    .badge-ink { background: var(--ink); color: var(--paper); }
+    .badge-accent { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+    .badge-muted { border-color: var(--rule); color: var(--muted); }
+
+    .telemetry-bullet { list-style: none; padding: 0; margin-top: var(--space-3); }
+    .telemetry-bullet li { padding: var(--space-1) 0; font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); }
+    .telemetry-bullet li::before { content: '· '; color: var(--accent); font-weight: 700; }
+
+    .when-on { display: none; }
+    .when-off { display: block; }
+    .toggle-row[aria-checked="true"] ~ .when-off { display: none; }
+    /* Simpler approach with classes toggled in JS */
+
+    /* Danger zone */
+    .danger { padding: var(--space-6); border: 2px solid var(--accent); background: rgba(200, 57, 47, 0.06); margin-top: var(--space-8); }
+    .danger h3 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-xl); color: var(--accent); margin-bottom: var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+    .danger h3::before { content: '⚠'; }
+    .danger p { font-family: var(--font-ui); font-size: var(--fs-md); color: var(--ink); margin-bottom: var(--space-4); max-width: 600px; }
+
+    .btn-danger { padding: var(--space-3) var(--space-6); background: var(--accent); color: var(--paper); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; font-weight: 600; }
+    .btn-danger:hover { background: var(--ink); border-color: var(--ink); }
+
+    /* Confirm modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,26,0.7); display: none; align-items: center; justify-content: center; z-index: 999; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--paper); border: 2px solid var(--accent); width: 480px; max-width: 90vw; box-shadow: 8px 8px 0 var(--shadow-rgb); }
+    .modal-header { padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); color: var(--accent); }
+    .modal-body { padding: var(--space-6); }
+    .modal-body p { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.55; }
+    .modal-body ul { margin-top: var(--space-3); padding-left: var(--space-4); }
+    .modal-body ul li { font-family: var(--font-mono); font-size: var(--fs-sm); padding: var(--space-1) 0; color: var(--muted); }
+    .modal-actions { padding: var(--space-4) var(--space-6); border-top: 1px solid var(--rule); display: flex; justify-content: flex-end; gap: var(--space-3); }
+
+    /* Privacy callout */
+    .privacy-callout { margin-top: var(--space-12); padding: var(--space-5); border: var(--hairline); display: flex; gap: var(--space-4); }
+    .pc-icon { width: 32px; height: 32px; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-md); flex-shrink: 0; background: var(--ink); color: var(--paper); }
+    .pc-body { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.55; }
+    .pc-body strong { display: block; font-family: var(--font-heading); font-size: var(--fs-md); margin-bottom: var(--space-1); color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand-mini">Side<span class="mark">Mind</span> · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Settings</span></span>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="options-frame">
+    <div class="tabs">
+      <a class="tab" href="04-options-api-keys.html" data-i18n-key="keys.tab.title">API Keys</a>
+      <a class="tab" href="05-options-general.html" data-i18n-key="gen.tab.title">General</a>
+      <a class="tab active" href="06-options-privacy.html" data-i18n-key="priv.tab.title">Privacy</a>
+      <a class="tab" href="07-options-shortcuts.html" data-i18n-key="shortcuts.tab.title">Shortcuts</a>
+    </div>
+
+    <h1 data-i18n-key="priv.tab.title">Privacy</h1>
+
+    <!-- Telemetry -->
+    <section class="privacy-section">
+      <div class="privacy-label" data-i18n-key="priv.section.telemetry">Anonymous usage stats</div>
+      <div>
+        <div class="toggle-row">
+          <div class="toggle" id="tel-toggle" role="switch" tabindex="0" aria-checked="false" aria-label="Toggle anonymous usage stats"></div>
+          <span class="toggle-label" id="tel-label" style="font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted);" data-i18n-key="priv.telemetry.off">PRIVATE — OFF (default)</span>
+          <span id="tel-badge" class="badge badge-muted">OFF</span>
+        </div>
+
+        <ul class="telemetry-bullet" id="tel-when-on" style="display: none;">
+          <li data-i18n-key="priv.telemetry.when">When enabled, only: extension version, OS, browser version.</li>
+          <li data-i18n-key="priv.telemetry.never">No URLs, no page content, no API keys.</li>
+        </ul>
+        <p style="margin-top: var(--space-3); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted);">Default is OFF. NFR-02 §3.6.3 GDPR.</p>
+      </div>
+    </section>
+
+    <!-- Incognito -->
+    <section class="privacy-section">
+      <div class="privacy-label" data-i18n-key="priv.section.incognito">Incognito mode</div>
+      <div>
+        <div class="toggle-row">
+          <div class="toggle" id="inc-toggle" role="switch" tabindex="0" aria-checked="false" aria-label="Toggle incognito support"></div>
+          <span class="toggle-label" style="font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted);" data-i18n-key="priv.incognito.off">Disable in Incognito (recommended)</span>
+          <span id="inc-badge" class="badge badge-muted">OFF</span>
+        </div>
+        <p data-i18n-key="priv.incognito.disclaimer" style="margin-top: var(--space-3); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted);">When OFF, extension is disabled in incognito windows.</p>
+      </div>
+    </section>
+
+    <!-- Danger zone -->
+    <div class="danger">
+      <h3 data-i18n-key="priv.danger.title">Danger zone</h3>
+      <p data-i18n-key="priv.danger.body">This will delete all conversations, cached contexts, and encrypted API keys.</p>
+      <button class="btn-danger" id="clear-btn" data-i18n-key="priv.danger.btn">Clear all data</button>
+    </div>
+
+    <!-- Privacy policy callout -->
+    <div class="privacy-callout">
+      <div class="pc-icon">§</div>
+      <div class="pc-body">
+        <strong>Privacy policy</strong>
+        Read the full privacy policy before enabling any data-sharing option. SideMind never proxies user content through a server of its own — all AI calls go directly to your chosen provider.
+        <br /><br />
+        <span class="font-mono text-xs" style="color: var(--muted);">chrome://extensions → SideMind → Permissions → Privacy policy link.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm modal -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n-key="priv.clear.confirm.title">Delete everything?</span>
+        <button class="icon-btn" id="modal-close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2 L12 12 M2 12 L12 2"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p data-i18n-key="priv.clear.confirm.body">This cannot be undone.</p>
+        <ul>
+          <li>· Conversation history — all 12 entries</li>
+          <li>· Context cache (IndexedDB)</li>
+          <li>· Encrypted API keys (AES-GCM)</li>
+          <li>· User preferences & FAB position</li>
+        </ul>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="modal-cancel" data-i18n-key="priv.clear.cancel">Cancel</button>
+        <button class="btn btn-accent" id="modal-confirm" data-i18n-key="priv.clear.confirm">Delete everything</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setTheme(btn.getAttribute('data-theme-btn'));
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Telemetry toggle
+    function bindToggle(toggle, labelEl, badgeEl, labelOff, labelOn, badgeOff, badgeOn, whenOnEl) {
+      toggle.addEventListener('click', () => toggle.dispatchEvent(new Event('change-handler')));
+      toggle.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle.dispatchEvent(new Event('change-handler')); } });
+      toggle.addEventListener('change-handler', () => {
+        const next = toggle.getAttribute('aria-checked') !== 'true';
+        toggle.setAttribute('aria-checked', String(next));
+        if (labelEl) labelEl.textContent = SideMind.t(next ? labelOn : labelOff);
+        if (badgeEl) {
+          badgeEl.textContent = next ? badgeOn : badgeOff;
+          badgeEl.className = 'badge ' + (next ? 'badge-ink' : 'badge-muted');
+        }
+        if (whenOnEl) whenOnEl.style.display = next ? 'block' : 'none';
+      });
+    }
+
+    bindToggle(
+      document.getElementById('tel-toggle'),
+      document.getElementById('tel-label'),
+      document.getElementById('tel-badge'),
+      'priv.telemetry.off', 'priv.telemetry.on',
+      'OFF', 'OPT-IN',
+      document.getElementById('tel-when-on')
+    );
+
+    bindToggle(
+      document.getElementById('inc-toggle'),
+      null,
+      document.getElementById('inc-badge'),
+      null, null,
+      'OFF', 'ON'
+    );
+
+    // Modal
+    const modal = document.getElementById('modal');
+    document.getElementById('clear-btn').addEventListener('click', () => modal.classList.add('open'));
+    document.getElementById('modal-close').addEventListener('click', () => modal.classList.remove('open'));
+    document.getElementById('modal-cancel').addEventListener('click', () => modal.classList.remove('open'));
+    document.getElementById('modal-confirm').addEventListener('click', () => {
+      modal.classList.remove('open');
+      const t = document.getElementById('toast');
+      t.textContent = '✓ All data cleared';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+  </script>
+</body>
+</html>

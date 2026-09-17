@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 07 — Options · Shortcuts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-4) var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); background: var(--paper); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .brand-mini { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .brand-mini .mark { color: var(--accent); font-style: italic; }
+
+    .options-frame { max-width: var(--options-width); margin: 0 auto; padding: var(--space-6); }
+    .tabs { display: flex; gap: 0; border-bottom: var(--hairline); margin-bottom: var(--space-8); }
+    .tab { padding: var(--space-3) var(--space-6); font-family: var(--font-ui); font-size: var(--fs-sm); font-weight: 500; background: transparent; color: var(--muted); border: 0; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; text-decoration: none; }
+    .tab:hover { color: var(--ink); }
+    .tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+    h1 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; margin-bottom: var(--space-2); }
+    .h-sub { font-family: var(--font-ui); font-size: var(--fs-md); color: var(--muted); margin-bottom: var(--space-6); }
+
+    .shortcut-table { width: 100%; border-collapse: collapse; }
+    .shortcut-row { display: grid; grid-template-columns: 1fr 280px 80px; gap: var(--space-4); align-items: center; padding: var(--space-5) 0; border-bottom: var(--hairline); }
+    .shortcut-row:last-of-type { border-bottom: 0; }
+    .shortcut-action { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-lg); }
+    .shortcut-action-desc { display: block; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); margin-top: var(--space-1); }
+    .keys { display: flex; gap: var(--space-1); align-items: center; }
+    .keycap { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid var(--ink); background: var(--paper); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; margin: 0 2px; }
+    .keycap.wide { min-width: 64px; }
+    .keycap.darker { background: var(--ink); color: var(--paper); }
+    .plus { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-sm); padding: 0 4px; }
+    .action-cta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+    .shortcuts-meta { margin-top: var(--space-3); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+
+    .customize-cta { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font-family: var(--font-mono); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; margin-top: var(--space-6); text-decoration: none; }
+    .customize-cta:hover { background: var(--accent); border-color: var(--accent); }
+
+    .callout { margin-top: var(--space-12); padding: var(--space-5); border: var(--hairline); display: flex; gap: var(--space-4); }
+    .callout-icon { width: 32px; height: 32px; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; background: var(--paper); flex-shrink: 0; }
+    .callout-body { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.55; }
+    .callout-body code { font-family: var(--font-mono); padding: 2px 6px; background: var(--rule); color: var(--ink); }
+
+    .floating-keys { position: fixed; right: var(--space-6); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--space-2); }
+    .floating-keys .keycap { cursor: pointer; }
+    .floating-keys .keycap:hover { background: var(--ink); color: var(--paper); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand-mini">Side<span class="mark">Mind</span> · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Settings</span></span>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="options-frame">
+    <div class="tabs">
+      <a class="tab" href="04-options-api-keys.html" data-i18n-key="keys.tab.title">API Keys</a>
+      <a class="tab" href="05-options-general.html" data-i18n-key="gen.tab.title">General</a>
+      <a class="tab" href="06-options-privacy.html" data-i18n-key="priv.tab.title">Privacy</a>
+      <a class="tab active" href="07-options-shortcuts.html" data-i18n-key="shortcuts.tab.title">Shortcuts</a>
+    </div>
+
+    <h1 data-i18n-key="shortcuts.tab.title">Shortcuts</h1>
+    <p class="h-sub" data-i18n-key="shortcuts.platform.mac">macOS uses ⌘ instead of ⌃.</p>
+
+    <div class="shortcut-table">
+      <div class="shortcut-row">
+        <div>
+          <div class="shortcut-action" data-i18n-key="shortcuts.act.toggle">Toggle side panel</div>
+          <div class="shortcut-action-desc">FR-10 #1 · chrome.sidePanel.open() / close()</div>
+        </div>
+        <div class="keys">
+          <span class="keycap darker">⌃</span>
+          <span class="plus">+</span>
+          <span class="keycap darker">⇧</span>
+          <span class="plus">+</span>
+          <span class="keycap">Y</span>
+        </div>
+        <div class="action-cta">Reset</div>
+      </div>
+
+      <div class="shortcut-row">
+        <div>
+          <div class="shortcut-action" data-i18n-key="shortcuts.act.focus">Focus input</div>
+          <div class="shortcut-action-desc">FR-10 #2 · focus side-panel input box</div>
+        </div>
+        <div class="keys">
+          <span class="keycap darker">⌃</span>
+          <span class="plus">+</span>
+          <span class="keycap darker">⇧</span>
+          <span class="plus">+</span>
+          <span class="keycap">L</span>
+        </div>
+        <div class="action-cta">Reset</div>
+      </div>
+
+      <div class="shortcut-row">
+        <div>
+          <div class="shortcut-action" data-i18n-key="shortcuts.act.new">New chat</div>
+          <div class="shortcut-action-desc">FR-10 #3 · clear current conversation, start fresh</div>
+        </div>
+        <div class="keys">
+          <span class="keycap darker">⌃</span>
+          <span class="plus">+</span>
+          <span class="keycap darker">⇧</span>
+          <span class="plus">+</span>
+          <span class="keycap">N</span>
+        </div>
+        <div class="action-cta">Reset</div>
+      </div>
+
+      <div class="shortcut-row">
+        <div>
+          <div class="shortcut-action" data-i18n-key="shortcuts.act.copy">Copy last AI answer</div>
+          <div class="shortcut-action-desc">FR-10 #4 · copy the most recent AI message to clipboard</div>
+        </div>
+        <div class="keys">
+          <span class="keycap darker">⌃</span>
+          <span class="plus">+</span>
+          <span class="keycap darker">⇧</span>
+          <span class="plus">+</span>
+          <span class="keycap">C</span>
+        </div>
+        <div class="action-cta">Reset</div>
+      </div>
+    </div>
+
+    <div class="shortcuts-meta">
+      <span><span style="color: var(--ink); font-weight: 600;">4</span> active shortcuts</span>
+      <span>Defined via <code style="background: var(--rule); padding: 0 4px;">chrome.commands</code></span>
+    </div>
+
+    <a class="customize-cta" href="chrome://extensions/shortcuts" data-i18n-key="shortcuts.customize">
+      <span>↗</span>
+      <span>Customize at chrome://extensions/shortcuts</span>
+    </a>
+
+    <!-- Demo: catch keystrokes -->
+    <div class="callout">
+      <div class="callout-icon">⌨</div>
+      <div class="callout-body">
+        <strong style="font-family: var(--font-heading); display: block; margin-bottom: var(--space-1);">Try the shortcuts in this page</strong>
+        Press <code>⌃</code>+<code>⇧</code>+<code>Y</code>, <code>⌃</code>+<code>⇧</code>+<code>L</code>, <code>⌃</code>+<code>⇧</code>+<code>N</code>, or <code>⌃</code>+<code>⇧</code>+<code>C</code> — a toast confirms each binding. macOS users: substitute <code>⌘</code>.
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setTheme(btn.getAttribute('data-theme-btn'));
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Keystroke catcher
+    document.addEventListener('keydown', (e) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod || !e.shiftKey) return;
+      const key = e.key.toUpperCase();
+      if (key !== 'Y' && key !== 'L' && key !== 'N' && key !== 'C') return;
+      e.preventDefault();
+      const labels = {
+        Y: 'Toggle side panel — fired ⌃⇧Y',
+        L: 'Focus input — fired ⌃⇧L',
+        N: 'New chat — fired ⌃⇧N',
+        C: 'Copy last answer — fired ⌃⇧C',
+      };
+      const t = document.getElementById('toast');
+      t.textContent = labels[key];
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    });
+  </script>
+</body>
+</html>

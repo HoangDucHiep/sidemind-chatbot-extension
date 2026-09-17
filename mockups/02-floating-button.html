@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 02 — Floating Action Button</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: var(--space-8) 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); margin-bottom: var(--space-8); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+
+    .stage-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; }
+
+    /* Mock article page (the "host" the FAB lives on) */
+    .article-page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: var(--space-8);
+      background: var(--paper);
+      border: var(--hairline);
+      position: relative;
+      min-height: 720px;
+    }
+    .article-tag { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); }
+    .article-h1 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1.05; margin: var(--space-3) 0; }
+    .article-byline { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); margin-bottom: var(--space-6); padding-bottom: var(--space-3); border-bottom: var(--hairline); }
+    .article-hero { width: 100%; height: 200px; background: linear-gradient(135deg, var(--rule), var(--accent-soft)); margin: var(--space-4) 0 var(--space-6); display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-style: italic; color: var(--muted); }
+    .article-p { font-family: var(--font-ui); font-size: var(--fs-md); line-height: 1.7; margin-bottom: var(--space-4); }
+    .article-p::first-letter { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-2xl); float: left; line-height: 1; padding: 4px 8px 0 0; color: var(--accent); }
+
+    /* FAB viewport wrapper */
+    .viewport-wrap {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto var(--space-8);
+      padding: 0 var(--space-6);
+    }
+    .viewport-wrap .article-page { box-shadow: 8px 8px 0 var(--shadow-rgb); }
+
+    /* Each state row */
+    .state-row { display: grid; grid-template-columns: 1fr 360px; gap: var(--space-6); align-items: stretch; margin-bottom: var(--space-8); }
+    @media (max-width: 1100px) { .state-row { grid-template-columns: 1fr; } }
+
+    .state-card {
+      border: var(--hairline);
+      padding: var(--space-6);
+      background: var(--paper);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .state-card .text-eyebrow { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+    .state-card h3 { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-xl); }
+    .state-card p { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.55; color: var(--muted); }
+    .state-meta { display: flex; gap: var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); padding-top: var(--space-3); border-top: var(--hairline); }
+    .state-meta .key { color: var(--muted); }
+    .state-meta .val { color: var(--ink); font-weight: 600; }
+
+    /* FAB itself */
+    .fab {
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 180ms cubic-bezier(0.2,0,0,1), box-shadow 180ms cubic-bezier(0.2,0,0,1), border-color 180ms;
+      position: absolute;
+      z-index: 100;
+      user-select: none;
+    }
+    .fab:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--shadow-rgb); border-color: var(--accent); }
+
+    /* Idle state */
+    .fab-stage { position: relative; min-height: 360px; }
+    .fab.idle { bottom: var(--space-6); right: var(--space-6); }
+    .fab.hover { bottom: var(--space-6); right: var(--space-6); transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--shadow-rgb); border-color: var(--accent); }
+    .fab.active { bottom: var(--space-6); right: var(--space-6); opacity: 0; pointer-events: none; }
+    .fab-active-note {
+      position: absolute;
+      bottom: var(--space-6); right: var(--space-6);
+      width: 140px;
+      height: 48px;
+      border: 1px dashed var(--rule);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+      color: var(--muted);
+    }
+
+    .fab-tooltip {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      margin-bottom: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--motion-fast);
+    }
+    .fab:hover .fab-tooltip { opacity: 1; }
+
+    .pos-badge {
+      position: absolute;
+      top: var(--space-4); left: var(--space-4);
+      padding: var(--space-1) var(--space-3);
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+      z-index: 10;
+    }
+
+    .drag-help {
+      padding: var(--space-3);
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+      text-align: center;
+      margin-top: var(--space-4);
+    }
+
+    /* drag demo specific */
+    .drag-target {
+      position: relative;
+      background: var(--paper);
+      border: 1px dashed var(--rule);
+      min-height: 480px;
+      overflow: hidden;
+    }
+    .drag-target .grid-x {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(to right, var(--rule) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .drag-fab {
+      position: absolute;
+      width: 56px;
+      height: 56px;
+      border: 2px solid var(--accent);
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 22px;
+      cursor: grab;
+      z-index: 5;
+      box-shadow: 4px 4px 0 var(--shadow-rgb);
+      transition: box-shadow 100ms;
+    }
+    .drag-fab.dragging { cursor: grabbing; box-shadow: 8px 8px 0 var(--shadow-rgb); }
+    .pos-display {
+      padding: var(--space-3) var(--space-4);
+      border-top: var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: var(--fs-sm);
+      background: var(--paper);
+    }
+    .pos-display .num { color: var(--accent); font-weight: 600; }
+    .btn-inline { padding: 4px var(--space-3); border: 1px solid var(--ink); background: var(--paper); font-family: var(--font-mono); font-size: var(--fs-xs); cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; }
+    .btn-inline:hover { background: var(--ink); color: var(--paper); }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <div>
+        <div class="text-mono-uppercase mb-2">Mockup · 02</div>
+        <h1 class="stage-title">Floating Action Button</h1>
+        <p class="text-sm text-muted" style="margin-top: var(--space-2);">FR-01 + §3.1.2 — FAB lives on every page; opens side panel; drag reposition persists.</p>
+      </div>
+      <div style="display: flex; gap: var(--space-3); align-items: center;">
+        <div class="seg">
+          <button data-lang-btn="en" aria-pressed="true">EN</button>
+          <button data-lang-btn="vi" aria-pressed="false">VI</button>
+        </div>
+        <div class="seg">
+          <button data-theme-btn="light" aria-pressed="true">Light</button>
+          <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+        </div>
+        <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+      </div>
+    </div>
+
+    <!-- ===== Row 1: idle ===== -->
+    <div class="state-row">
+      <div class="article-page">
+        <span class="article-tag">Science · 12 min read</span>
+        <h2 class="article-h1">On the curious phenomenon of attention sinks in transformer inference</h2>
+        <div class="article-byline">By H. Researcher · Sep 16, 2026 · No. 142</div>
+        <div class="article-hero">— figure placeholder —</div>
+        <p class="article-p">Transformer models exhibit a fascinating regularity during inference: certain attention heads converge on a small set of tokens regardless of context. Recent work has shown these "attention sinks" provide numerical stability that would otherwise require additional normalization…</p>
+        <p class="article-p">Three distinct mechanisms appear to drive this behavior. First, the residual stream's magnitude grows monotonically with depth, creating drift. Second, attention softmax produces uniform distributions when no token clearly wins. Third, certain heads specialize in aggregating global information across layers…</p>
+        <!-- FAB -->
+        <div class="fab idle" tabindex="0" role="button" aria-label="Open SideMind">
+          <span>S</span>
+          <div class="fab-tooltip" data-i18n-key="fab.open">Open SideMind</div>
+        </div>
+      </div>
+      <div class="state-card">
+        <span class="text-eyebrow">State 01</span>
+        <h3 data-i18n-key="fab.state.idle.title">Idle</h3>
+        <p>The FAB sits in the bottom-right corner of every page. Click to open the side panel. A subtle border, no shadow — quiet, present, never intrusive.</p>
+        <div class="state-meta">
+          <span class="key">size</span><span class="val">48 × 48</span>
+          <span class="key">pos</span><span class="val">bottom:16 right:16</span>
+        </div>
+        <div class="state-meta">
+          <span class="key">cursor</span><span class="val">pointer</span>
+          <span class="key">z-index</span><span class="val">1000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Row 2: hover / drag ===== -->
+    <div class="state-row">
+      <div class="article-page">
+        <span class="article-tag">Science · 12 min read</span>
+        <h2 class="article-h1">How three findings reshape our understanding of streaming inference</h2>
+        <div class="article-byline">By H. Researcher · Sep 16, 2026 · No. 143</div>
+        <div class="article-hero">— figure placeholder —</div>
+        <p class="article-p">When the user hovers, the FAB gains a 4px hard shadow and migrates 2px up-left. The accent-color border hints at interactivity without resorting to glow effects or soft elevations — editorial style demands crisp geometry…</p>
+        <p class="article-p">Drag persistence follows FR-01 #5: position is saved to chrome.storage.local on drop, keyed per-tab. Reload restores. The cursor shifts to <code style="font-family: var(--font-mono); background: var(--rule); padding: 0 4px;">grabbing</code> during the gesture.</p>
+        <!-- FAB hover state -->
+        <div class="fab hover" role="button" tabindex="0" aria-label="Drag to reposition SideMind">
+          <span>S</span>
+          <div class="fab-tooltip" data-i18n-key="fab.drag.hint">Drag to reposition</div>
+        </div>
+      </div>
+      <div class="state-card">
+        <span class="text-eyebrow">State 02</span>
+        <h3 data-i18n-key="fab.state.hover.title">Hover / Drag</h3>
+        <p>Hover or drag — the FAB becomes a tool. The hard 4px shadow is the editorial equivalent of a physical cutout pressed against the page.</p>
+        <div class="state-meta">
+          <span class="key">shadow</span><span class="val">4px 4px 0 ink</span>
+          <span class="key">border</span><span class="val">accent</span>
+        </div>
+        <div class="state-meta">
+          <span class="key">cursor</span><span class="val">grab / grabbing</span>
+          <span class="key">tooltip</span><span class="val">drag to reposition</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Row 3: active (panel open — FAB hidden) ===== -->
+    <div class="state-row">
+      <div class="article-page">
+        <span class="article-tag">Science · 12 min read</span>
+        <h2 class="article-h1">FAB behavior when the side panel is open</h2>
+        <div class="article-byline">By H. Researcher · Sep 16, 2026 · No. 144</div>
+        <div class="article-hero">— figure placeholder —</div>
+        <p class="article-p">When the side panel opens, the FAB vanishes entirely. This avoids visual clutter and prevents the user from accidentally stacking interactions. Reopening the panel via the toolbar action or pressing the toggle shortcut <code style="font-family: var(--font-mono); background: var(--rule); padding: 0 4px;">⌃⇧Y</code> restores the FAB on panel close.</p>
+        <!-- FAB hidden — show ghost placeholder -->
+        <div class="fab active" role="button" aria-label="Open SideMind"><span>S</span></div>
+        <div class="fab-active-note">panel open · FAB hidden</div>
+      </div>
+      <div class="state-card">
+        <span class="text-eyebrow">State 03</span>
+        <h3 data-i18n-key="fab.state.active.title">Active (panel open)</h3>
+        <p data-i18n-key="fab.active.note">FAB hides when panel is open — FR-01.</p>
+        <div class="state-meta">
+          <span class="key">opacity</span><span class="val">0</span>
+          <span class="key">pointer</span><span class="val">none</span>
+        </div>
+        <div class="state-meta">
+          <span class="key">trigger</span><span class="val">toolbar · ⌃⇧Y</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Interactive: drag demo ===== -->
+    <section class="viewport-wrap" style="margin-top: var(--space-12);">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-3);">
+        <h2 class="text-headline" style="font-size: var(--fs-2xl);">Drag demo · persist to localStorage</h2>
+        <span class="font-mono text-xs text-muted">FR-01 #5</span>
+      </div>
+      <p class="text-sm text-muted" style="margin-bottom: var(--space-4);">Grab the FAB below and drag anywhere on the dotted grid. Position is saved; reload the page to confirm persistence.</p>
+
+      <div class="drag-target" id="drag-target">
+        <div class="grid-x"></div>
+        <div class="pos-badge">Position · <span id="pos-coords" class="num">x:0 y:0</span></div>
+        <div class="drag-fab" id="drag-fab" tabindex="0" role="button" aria-label="Draggable FAB"><span>S</span></div>
+        <div class="drag-help">↑ Grab me, drag me. Position saves automatically.</div>
+      </div>
+      <div class="pos-display">
+        <div>
+          <span class="font-mono">Saved position:</span>
+          <span class="num" id="saved-pos">x:0 y:0</span>
+        </div>
+        <div style="display: flex; gap: var(--space-2);">
+          <button class="btn-inline" id="reset-pos">Reset</button>
+          <button class="btn-inline" id="toast-saved" data-i18n-key="fab.drag.saved">Position saved</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme-btn');
+        SideMind.setTheme(theme);
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // FAB drag demo
+    (function () {
+      const target = document.getElementById('drag-target');
+      const fab = document.getElementById('drag-fab');
+      const coordsEl = document.getElementById('pos-coords');
+      const savedEl = document.getElementById('saved-pos');
+      const resetBtn = document.getElementById('reset-pos');
+      const KEY = 'sidemind_fab_pos';
+
+      // restore
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+      function clampToTarget(x, y) {
+        const tRect = target.getBoundingClientRect();
+        const fRect = fab.getBoundingClientRect();
+        const w = fab.offsetWidth, h = fab.offsetHeight;
+        const minX = 8, minY = 8;
+        const maxX = tRect.width - w - 8;
+        const maxY = tRect.height - h - 8;
+        return { x: Math.min(Math.max(x, minX), maxX), y: Math.min(Math.max(y, minY), maxY) };
+      }
+      function render(x, y) {
+        fab.style.left = x + 'px';
+        fab.style.top = y + 'px';
+        coordsEl.textContent = `x:${Math.round(x)} y:${Math.round(y)}`;
+      }
+      // initial
+      let pos = saved && typeof saved.x === 'number' ? clampToTarget(saved.x, saved.y) : { x: 24, y: 24 };
+      render(pos.x, pos.y);
+      savedEl.textContent = `x:${Math.round(pos.x)} y:${Math.round(pos.y)}`;
+
+      let dragging = false, startX, startY, offsetX, offsetY;
+      const targetRectForPointer = () => target.getBoundingClientRect();
+
+      function onDown(e) {
+        dragging = true;
+        fab.classList.add('dragging');
+        const p = e.touches ? e.touches[0] : e;
+        const rect = fab.getBoundingClientRect();
+        offsetX = p.clientX - rect.left;
+        offsetY = p.clientY - rect.top;
+        startX = p.clientX; startY = p.clientY;
+        e.preventDefault();
+      }
+      function onMove(e) {
+        if (!dragging) return;
+        const p = e.touches ? e.touches[0] : e;
+        const tRect = targetRectForPointer();
+        const x = p.clientX - tRect.left - offsetX;
+        const y = p.clientY - tRect.top - offsetY;
+        pos = clampToTarget(x, y);
+        render(pos.x, pos.y);
+      }
+      function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        fab.classList.remove('dragging');
+        localStorage.setItem(KEY, JSON.stringify(pos));
+        savedEl.textContent = `x:${Math.round(pos.x)} y:${Math.round(pos.y)}`;
+        const t = document.getElementById('toast');
+        t.textContent = SideMind.t('fab.drag.saved') + ` · x:${Math.round(pos.x)} y:${Math.round(pos.y)}`;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+      }
+      fab.addEventListener('mousedown', onDown);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      fab.addEventListener('touchstart', onDown, { passive: false });
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onUp);
+
+      // keyboard nudges
+      fab.addEventListener('keydown', (e) => {
+        const step = e.shiftKey ? 32 : 8;
+        let nx = pos.x, ny = pos.y;
+        if (e.key === 'ArrowLeft') nx -= step;
+        if (e.key === 'ArrowRight') nx += step;
+        if (e.key === 'ArrowUp') ny -= step;
+        if (e.key === 'ArrowDown') ny += step;
+        if (nx !== pos.x || ny !== pos.y) {
+          pos = clampToTarget(nx, ny);
+          render(pos.x, pos.y);
+          localStorage.setItem(KEY, JSON.stringify(pos));
+          savedEl.textContent = `x:${Math.round(pos.x)} y:${Math.round(pos.y)}`;
+          e.preventDefault();
+        }
+      });
+
+      resetBtn.addEventListener('click', () => {
+        localStorage.removeItem(KEY);
+        pos = { x: 24, y: 24 };
+        render(pos.x, pos.y);
+        savedEl.textContent = `x:${Math.round(pos.x)} y:${Math.round(pos.y)}`;
+      });
+    })();
+  </script>
+</body>
+</html>

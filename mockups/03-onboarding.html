@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 03 — Onboarding Tour</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { overflow-x: hidden; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .stage-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-2xl); line-height: 1; }
+
+    /* Mock side panel stays visible behind the spotlight so we can point at it */
+    .stage-wrap { position: relative; display: flex; min-height: 760px; padding: var(--space-6); gap: var(--space-6); }
+
+    .side-panel-mock {
+      width: 360px;
+      flex-shrink: 0;
+      background: var(--paper);
+      border: var(--hairline);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 8px 8px 0 var(--shadow-rgb);
+    }
+    .sp-header { padding: var(--space-3) var(--space-4); border-bottom: var(--hairline); display: flex; align-items: center; justify-content: space-between; }
+    .sp-brand { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .sp-brand-mark { color: var(--accent); font-style: italic; }
+    .sp-header-actions { display: flex; gap: var(--space-1); }
+    .sp-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+    .sp-icon-btn:hover { background: var(--ink); color: var(--paper); }
+    .sp-context { padding: var(--space-3) var(--space-4); border-bottom: var(--hairline); position: relative; }
+    .sp-context-eyebrow { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .sp-context-title { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); margin: var(--space-1) 0; }
+    .sp-context-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+    .sp-body { padding: var(--space-6) var(--space-4); flex: 1; }
+    .sp-body-hero { font-family: var(--font-heading); font-style: italic; font-size: var(--fs-xl); }
+    .sp-input { border-top: var(--hairline); padding: var(--space-3); }
+    .sp-input-row { display: flex; align-items: center; gap: var(--space-2); border: 1px solid var(--ink); padding: var(--space-2); position: relative; }
+    .sp-input-row input { flex: 1; border: 0; background: transparent; outline: none; font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--ink); padding: 0; }
+    .sp-input-row input::placeholder { color: var(--muted); }
+    .sp-input-row .send { padding: var(--space-1) var(--space-2); border: 1px solid var(--ink); font-family: var(--font-mono); font-size: var(--fs-xs); cursor: pointer; }
+
+    /* Step targets — these get spotlight cutouts */
+    [data-step-target="1"] { scroll-margin-top: 100px; }
+    [data-step-target="2"] {}
+    [data-step-target="3"] {}
+
+    .right-content {
+      flex: 1;
+      padding: var(--space-6);
+      background: var(--paper);
+      border: var(--hairline);
+    }
+    .right-content h3 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-2xl); margin-bottom: var(--space-3); }
+    .right-content p { font-family: var(--font-ui); font-size: var(--fs-md); line-height: 1.6; max-width: 600px; }
+
+    /* ===== Spotlight + tooltip ===== */
+    .tour-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+    }
+    /* The cutout is just a box that does NOT cover the highlighted region */
+    .tour-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(26, 26, 26, 0.78);
+      transition: clip-path var(--motion-slow);
+      -webkit-clip-path: polygon(
+        0 0,
+        0 100%,
+        100% 100%,
+        100% 0,
+        0 0,
+        var(--cx, 50%) var(--cy, 50%),
+        var(--cx, 50%) calc(var(--cy, 50%) + var(--ch, 80px)),
+        calc(var(--cx, 50%) + var(--cw, 200px)) calc(var(--cy, 50%) + var(--ch, 80px)),
+        calc(var(--cx, 50%) + var(--cw, 200px)) var(--cy, 50%),
+        var(--cx, 50%) var(--cy, 50%)
+      );
+      clip-path: polygon(
+        0 0,
+        0 100%,
+        100% 100%,
+        100% 0,
+        0 0,
+        var(--cx, 50%) var(--cy, 50%),
+        var(--cx, 50%) calc(var(--cy, 50%) + var(--ch, 80px)),
+        calc(var(--cx, 50%) + var(--cw, 200px)) calc(var(--cy, 50%) + var(--ch, 80px)),
+        calc(var(--cx, 50%) + var(--cw, 200px)) var(--cy, 50%),
+        var(--cx, 50%) var(--cy, 50%)
+      );
+    }
+    /* Fallback: SVG-based mask (works without clip-path math) */
+    .tour-mask-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tour-tooltip {
+      position: fixed;
+      width: 320px;
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      box-shadow: 6px 6px 0 var(--shadow-rgb);
+      padding: var(--space-5);
+      z-index: 1000;
+      pointer-events: auto;
+      transition: top var(--motion-slow), left var(--motion-slow), opacity var(--motion-slow);
+      opacity: 1;
+    }
+    .tour-tooltip .step-no { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: var(--space-2); }
+    .tour-tooltip h4 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); margin-bottom: var(--space-2); }
+    .tour-tooltip p { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.55; color: var(--muted); }
+    .tour-actions { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-4); padding-top: var(--space-3); border-top: var(--hairline); }
+    .tour-progress { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+    .tour-btns { display: flex; gap: var(--space-2); }
+    .tour-skip { padding: var(--space-2) var(--space-3); border: 1px solid transparent; background: transparent; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; color: var(--muted); }
+    .tour-skip:hover { color: var(--ink); }
+    .tour-next { padding: var(--space-2) var(--space-4); background: var(--ink); color: var(--paper); border: 1px solid var(--ink); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; font-weight: 600; }
+    .tour-next:hover { background: var(--accent); border-color: var(--accent); }
+    .tour-cursor { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <div class="text-mono-uppercase mb-2">Mockup · 03</div>
+      <h1 class="stage-title">First-time onboarding tour</h1>
+    </div>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="stage-wrap">
+    <aside class="side-panel-mock">
+      <div class="sp-header" data-step-target="3">
+        <span class="sp-brand">Side<span class="sp-brand-mark">Mind</span></span>
+        <div class="sp-header-actions">
+          <button class="sp-icon-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect y="2" width="14" height="1.5"/><rect y="6" width="14" height="1.5"/><rect y="10" width="14" height="1.5"/></svg>
+          </button>
+          <button class="sp-icon-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2 L12 12 M2 12 L12 2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="sp-context" data-step-target="1">
+        <div class="sp-context-eyebrow" data-i18n-key="sidepanel.context.label">Context</div>
+        <div class="sp-context-title">"How attention sinks affect LLM inference"</div>
+        <div class="sp-context-meta">
+          YouTube · 2,341 words · 2m ago · <span class="badge badge-ink" style="font-size: 9px;" data-i18n-key="common.ready">READY</span>
+        </div>
+      </div>
+      <div class="sp-body">
+        <div class="sp-body-hero" data-i18n-key="sidepanel.empty.hero">Ask about this page.</div>
+      </div>
+      <div class="sp-input" data-step-target="2">
+        <div class="sp-input-row">
+          <input type="text" placeholder="Ask anything…" />
+          <span class="send">Send</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="right-content">
+      <h3>Walk-through narrative</h3>
+      <p>This 3-step tour is shown once when the user installs the extension. Use <kbd class="keycap">←</kbd> / <kbd class="keycap">→</kbd> arrow keys to step through manually, or click the buttons inside the tooltip. After the tour, the overlay fades and a brief toast confirms completion.</p>
+
+      <div style="margin-top: var(--space-6); padding-top: var(--space-4); border-top: var(--hairline);">
+        <div class="text-eyebrow">Manual control</div>
+        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-2);">
+          <button class="btn" id="step-prev">← Prev</button>
+          <button class="btn" id="step-next-manual">Next →</button>
+          <button class="btn btn-accent" id="reset-tour">Restart tour</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tour overlay -->
+  <div class="tour-overlay" id="tour-overlay">
+    <svg class="tour-mask-svg" id="tour-svg" preserveAspectRatio="none">
+      <defs>
+        <mask id="cutout">
+          <rect width="100%" height="100%" fill="white" />
+          <rect id="cutout-rect" x="0" y="0" width="0" height="0" rx="0" fill="black" />
+        </mask>
+      </defs>
+      <rect width="100%" height="100%" fill="rgba(26,26,26,0.78)" mask="url(#cutout)" />
+    </svg>
+  </div>
+
+  <div class="tour-tooltip" id="tour-tooltip" style="display: none;">
+    <div class="step-no" id="step-no">Step 1 of 3</div>
+    <h4 id="step-title">This is your page context.</h4>
+    <p id="step-body">Refresh when the page changes. SideMind re-extracts automatically.</p>
+    <div class="tour-actions">
+      <span class="tour-progress" id="step-progress">1/3</span>
+      <div class="tour-btns">
+        <button class="tour-skip" id="step-skip">Skip</button>
+        <button class="tour-next" id="step-next">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme-btn');
+        SideMind.setTheme(theme);
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Tour logic
+    const STEPS = [
+      { target: '1', titleKey: 'onb.step1.title', bodyKey: 'onb.step1.body', position: 'below' },
+      { target: '2', titleKey: 'onb.step2.title', bodyKey: 'onb.step2.body', position: 'above' },
+      { target: '3', titleKey: 'onb.step3.title', bodyKey: 'onb.step3.body', position: 'left' },
+    ];
+    let stepIdx = 0;
+    const tooltip = document.getElementById('tour-tooltip');
+    const overlay = document.getElementById('tour-overlay');
+    const cutoutRect = document.getElementById('cutout-rect');
+    const svg = document.getElementById('tour-svg');
+    const stepNo = document.getElementById('step-no');
+    const stepTitle = document.getElementById('step-title');
+    const stepBody = document.getElementById('step-body');
+    const stepProgress = document.getElementById('step-progress');
+
+    function applyCutout(rect) {
+      svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+      svg.setAttribute('width', window.innerWidth);
+      svg.setAttribute('height', window.innerHeight);
+      const PAD = 8;
+      cutoutRect.setAttribute('x', rect.left - PAD);
+      cutoutRect.setAttribute('y', rect.top - PAD);
+      cutoutRect.setAttribute('width', rect.width + PAD * 2);
+      cutoutRect.setAttribute('height', rect.height + PAD * 2);
+      cutoutRect.setAttribute('rx', 0);
+    }
+    function positionTooltip(targetRect, position) {
+      const TIP_W = 320;
+      const MARGIN = 12;
+      const ww = window.innerWidth, wh = window.innerHeight;
+      let top, left;
+      if (position === 'below') {
+        top = targetRect.bottom + MARGIN;
+        left = Math.min(Math.max(targetRect.left, MARGIN), ww - TIP_W - MARGIN);
+      } else if (position === 'above') {
+        top = targetRect.top - 240; // we'll know height after render
+        left = Math.min(Math.max(targetRect.left, MARGIN), ww - TIP_W - MARGIN);
+      } else if (position === 'left') {
+        top = targetRect.top;
+        left = Math.max(MARGIN, targetRect.left - TIP_W - MARGIN);
+      } else {
+        top = targetRect.bottom + MARGIN;
+        left = Math.min(Math.max(targetRect.left, MARGIN), ww - TIP_W - MARGIN);
+      }
+      tooltip.style.top = top + 'px';
+      tooltip.style.left = left + 'px';
+      // adjust if above would overflow
+      if (position === 'above') {
+        const tipH = tooltip.offsetHeight;
+        if (top + tipH > wh) {
+          top = targetRect.top - tipH - MARGIN;
+          tooltip.style.top = top + 'px';
+        }
+      }
+      // Clamp top
+      if (top < MARGIN) tooltip.style.top = MARGIN + 'px';
+    }
+
+    function showStep(idx) {
+      stepIdx = idx;
+      const step = STEPS[idx];
+      const targetEl = document.querySelector(`[data-step-target="${step.target}"]`);
+      if (!targetEl) return;
+      const rect = targetEl.getBoundingClientRect();
+      applyCutout(rect);
+      positionTooltip(rect, step.position);
+      tooltip.style.display = 'block';
+      stepNo.textContent = `Step ${idx + 1} of ${STEPS.length}`;
+      stepTitle.textContent = SideMind.t(step.titleKey);
+      stepBody.textContent = SideMind.t(step.bodyKey);
+      stepProgress.textContent = SideMind.t('onb.progress', 'en').replace('%d', String(idx + 1)).replace('%d', String(STEPS.length));
+      // Update i18n for step-progress when VI
+      if (SideMind.getLang() === 'vi') {
+        stepProgress.textContent = `${idx + 1}/${STEPS.length}`;
+      }
+      // last step: change Next label to "Done"
+      document.getElementById('step-next').textContent = idx === STEPS.length - 1
+        ? (SideMind.getLang() === 'vi' ? 'Hoàn tất' : 'Done')
+        : (SideMind.getLang() === 'vi' ? 'Tiếp →' : 'Next →');
+    }
+
+    function next() {
+      if (stepIdx >= STEPS.length - 1) {
+        finish();
+      } else {
+        showStep(stepIdx + 1);
+      }
+    }
+    function prev() { if (stepIdx > 0) showStep(stepIdx - 1); }
+    function finish() {
+      tooltip.style.display = 'none';
+      overlay.style.display = 'none';
+      // Restore cutout to nothing
+      cutoutRect.setAttribute('width', 0);
+      cutoutRect.setAttribute('height', 0);
+      const t = document.getElementById('toast');
+      t.textContent = SideMind.t('onb.done');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    function restart() {
+      overlay.style.display = 'block';
+      showStep(0);
+    }
+    document.getElementById('step-next').addEventListener('click', next);
+    document.getElementById('step-skip').addEventListener('click', finish);
+    document.getElementById('step-prev').addEventListener('click', prev);
+    document.getElementById('step-next-manual').addEventListener('click', next);
+    document.getElementById('reset-tour').addEventListener('click', restart);
+    document.addEventListener('keydown', (e) => {
+      if (tooltip.style.display === 'none') return;
+      if (e.key === 'ArrowRight') next();
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'Escape') finish();
+    });
+    window.addEventListener('resize', () => {
+      if (tooltip.style.display !== 'none') {
+        const step = STEPS[stepIdx];
+        const rect = document.querySelector(`[data-step-target="${step.target}"]`).getBoundingClientRect();
+        applyCutout(rect);
+        positionTooltip(rect, step.position);
+      }
+    });
+    // Initial
+    setTimeout(() => showStep(0), 200);
+  </script>
+</body>
+</html>

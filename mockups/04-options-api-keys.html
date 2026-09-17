@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 04 — Options · API Keys</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-4) var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); background: var(--paper); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .brand-mini { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .brand-mini .mark { color: var(--accent); font-style: italic; }
+
+    /* Options-page chrome */
+    .options-frame { max-width: var(--options-width); margin: 0 auto; padding: var(--space-6); }
+    .tabs { display: flex; gap: 0; border-bottom: var(--hairline); margin-bottom: var(--space-8); }
+    .tab { padding: var(--space-3) var(--space-6); font-family: var(--font-ui); font-size: var(--fs-sm); font-weight: 500; background: transparent; color: var(--muted); border: 0; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: color var(--motion-fast), border-color var(--motion-fast); text-decoration: none; }
+    .tab:hover { color: var(--ink); }
+    .tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+    .h-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; margin-bottom: var(--space-2); }
+    .h-sub { font-family: var(--font-ui); font-size: var(--fs-md); color: var(--muted); margin-bottom: var(--space-6); max-width: 640px; }
+
+    /* Provider rows */
+    .provider-row {
+      display: grid;
+      grid-template-columns: 240px 1fr 200px;
+      gap: var(--space-6);
+      align-items: center;
+      padding: var(--space-5) 0;
+      border-bottom: var(--hairline);
+    }
+    .provider-row:last-of-type { border-bottom: 0; }
+
+    .provider-id { display: flex; align-items: center; gap: var(--space-3); }
+    .provider-logo {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: var(--fs-lg);
+      flex-shrink: 0;
+    }
+    .provider-name { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-lg); }
+    .provider-tag { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .provider-meta { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-1); }
+
+    .key-row { display: flex; gap: var(--space-2); align-items: center; }
+    .key-input-wrap { flex: 1; position: relative; }
+    .key-input { width: 100%; padding: var(--space-2) var(--space-3); padding-right: 36px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font-family: var(--font-mono); font-size: var(--fs-sm); outline: none; border-radius: 0; }
+    .key-input:focus { border-color: var(--ink); }
+    .key-toggle { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); padding: 2px 6px; font-family: var(--font-mono); font-size: var(--fs-xs); background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--muted); }
+    .key-toggle:hover { color: var(--ink); }
+
+    .key-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .key-btn { padding: var(--space-2) var(--space-3); border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
+    .key-btn:hover { background: var(--ink); color: var(--paper); }
+    .key-btn.danger { border-color: var(--accent); color: var(--accent); }
+    .key-btn.danger:hover { background: var(--accent); color: var(--paper); }
+    .key-btn.spinner { opacity: 0.6; pointer-events: none; }
+    .key-btn.spinner::after { content: '…'; animation: spinnerDot 1.2s steps(3) infinite; }
+
+    @keyframes spinnerDot {
+      0% { content: '.'; }
+      33% { content: '..'; }
+      66% { content: '...'; }
+    }
+
+    /* Status badge */
+    .status { display: inline-flex; align-items: center; gap: var(--space-1); padding: 2px var(--space-2); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid var(--ink); }
+    .status.s-notset { color: var(--muted); border-color: var(--rule); }
+    .status.s-valid { background: var(--ink); color: var(--paper); }
+    .status.s-invalid { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+    .status.s-testing { background: var(--highlight); color: var(--ink); border-color: var(--ink); }
+    .status.pulse { animation: statusPulse 600ms ease-out; }
+    @keyframes statusPulse {
+      0% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    .provider-status-row { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+
+    /* Callout */
+    .callout { margin-top: var(--space-8); padding: var(--space-5); border: 2px solid var(--ink); background: var(--accent-soft); display: flex; gap: var(--space-4); }
+    .callout-icon { width: 32px; height: 32px; flex-shrink: 0; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; background: var(--paper); }
+    .callout-body h4 { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); margin-bottom: var(--space-1); }
+    .callout-body p { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.55; }
+
+    /* Encryption flow diagram */
+    .flow { margin-top: var(--space-12); padding: var(--space-5); border: var(--hairline); }
+    .flow h4 { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); margin-bottom: var(--space-3); }
+    .flow-diagram { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-family: var(--font-mono); font-size: var(--fs-xs); }
+    .flow-step { padding: var(--space-2) var(--space-3); border: 1px solid var(--ink); background: var(--paper); white-space: nowrap; }
+    .flow-arrow { color: var(--muted); }
+
+    .footer { margin-top: var(--space-12); padding-top: var(--space-6); border-top: var(--hairline); display: flex; align-items: center; justify-content: space-between; }
+    .footer-link { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--rule); }
+    .footer-link:hover { color: var(--accent); border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <!-- Minimal chrome with theme/lang toggles -->
+  <div class="topbar">
+    <span class="brand-mini">Side<span class="mark">Mind</span> · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Settings</span></span>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="options-frame">
+    <div class="tabs">
+      <a class="tab active" href="04-options-api-keys.html" data-i18n-key="keys.tab.title">API Keys</a>
+      <a class="tab" href="05-options-general.html" data-i18n-key="gen.tab.title">General</a>
+      <a class="tab" href="06-options-privacy.html" data-i18n-key="priv.tab.title">Privacy</a>
+      <a class="tab" href="07-options-shortcuts.html" data-i18n-key="shortcuts.tab.title">Shortcuts</a>
+    </div>
+
+    <h1 class="h-title" data-i18n-key="keys.tab.title">API Keys</h1>
+    <p class="h-sub" data-i18n-key="keys.tab.subtitle">Your keys never leave the device except to the AI provider you configure.</p>
+
+    <!-- Row 1: OpenAI — VALID -->
+    <div class="provider-row" id="row-openai">
+      <div class="provider-id">
+        <span class="provider-logo" style="background: var(--ink); color: var(--paper);">O</span>
+        <div class="provider-meta">
+          <span class="provider-name" data-i18n-key="keys.label.openai">OpenAI</span>
+          <span class="provider-tag">api.openai.com</span>
+        </div>
+      </div>
+      <div class="key-row">
+        <div class="key-input-wrap">
+          <input type="password" class="key-input" id="key-openai" value="sk-proj-MOCKxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+          <button type="button" class="key-toggle" data-toggle-target="key-openai" data-i18n-key="keys.btn.show">Show</button>
+        </div>
+      </div>
+      <div class="key-actions">
+        <button class="key-btn" data-test="openai" data-i18n-key="keys.btn.test">Test</button>
+        <button class="key-btn" data-save="openai" data-i18n-key="keys.btn.save">Save</button>
+        <button class="key-btn danger" data-delete="openai" data-i18n-key="keys.btn.delete">Delete</button>
+      </div>
+      <div class="provider-status-row" style="grid-column: 2 / span 2;">
+        <span class="status s-valid" id="status-openai" data-i18n-key="keys.status.valid">VALID</span>
+        <span class="font-mono text-xs text-muted">last tested 2m ago · encrypted AES-GCM-256</span>
+      </div>
+    </div>
+
+    <!-- Row 2: Anthropic — NOT SET -->
+    <div class="provider-row" id="row-anthropic">
+      <div class="provider-id">
+        <span class="provider-logo">A</span>
+        <div class="provider-meta">
+          <span class="provider-name" data-i18n-key="keys.label.anthropic">Anthropic</span>
+          <span class="provider-tag">api.anthropic.com</span>
+        </div>
+      </div>
+      <div class="key-row">
+        <div class="key-input-wrap">
+          <input type="password" class="key-input" id="key-anthropic" placeholder="" />
+          <button type="button" class="key-toggle" data-toggle-target="key-anthropic" data-i18n-key="keys.btn.show">Show</button>
+        </div>
+      </div>
+      <div class="key-actions">
+        <button class="key-btn" data-test="anthropic" data-i18n-key="keys.btn.test">Test</button>
+        <button class="key-btn" data-save="anthropic" data-i18n-key="keys.btn.save">Save</button>
+        <button class="key-btn danger" data-delete="anthropic" data-i18n-key="keys.btn.delete">Delete</button>
+      </div>
+      <div class="provider-status-row" style="grid-column: 2 / span 2;">
+        <span class="status s-notset" id="status-anthropic" data-i18n-key="keys.status.notset">NOT SET</span>
+      </div>
+    </div>
+
+    <!-- Row 3: Gemini — INVALID -->
+    <div class="provider-row" id="row-gemini">
+      <div class="provider-id">
+        <span class="provider-logo" style="background: var(--accent); color: var(--paper);">G</span>
+        <div class="provider-meta">
+          <span class="provider-name" data-i18n-key="keys.label.gemini">Gemini</span>
+          <span class="provider-tag">generativelanguage.googleapis.com</span>
+        </div>
+      </div>
+      <div class="key-row">
+        <div class="key-input-wrap">
+          <input type="text" class="key-input" id="key-gemini" value="AIzaSyMOCK_invalid_example_xxxxxxxxx" />
+          <button type="button" class="key-toggle" data-toggle-target="key-gemini" data-i18n-key="keys.btn.show">Show</button>
+        </div>
+      </div>
+      <div class="key-actions">
+        <button class="key-btn" data-test="gemini" data-i18n-key="keys.btn.test">Test</button>
+        <button class="key-btn" data-save="gemini" data-i18n-key="keys.btn.save">Save</button>
+        <button class="key-btn danger" data-delete="gemini" data-i18n-key="keys.btn.delete">Delete</button>
+      </div>
+      <div class="provider-status-row" style="grid-column: 2 / span 2;">
+        <span class="status s-invalid" id="status-gemini" data-i18n-key="keys.status.invalid">INVALID</span>
+        <span class="font-mono text-xs text-muted">401 unauthorized · rotate key</span>
+      </div>
+    </div>
+
+    <!-- Encryption callout -->
+    <div class="callout">
+      <div class="callout-icon" style="background: var(--ink); color: var(--paper);">⌬</div>
+      <div class="callout-body">
+        <h4 data-i18n-key="keys.callout.title">Encryption guarantee</h4>
+        <p data-i18n-key="keys.callout.body">All keys are encrypted with AES-GCM-256 before storage. Keys never leave your device except to the AI provider you configure.</p>
+      </div>
+    </div>
+
+    <!-- Encryption flow diagram (SRS Hình 7) -->
+    <div class="flow">
+      <h4>Encryption pipeline · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted);">SRS Hình 7</span></h4>
+      <div class="flow-diagram">
+        <span class="flow-step">key (plain)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">SHA-256(extensionID + salt)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">AES-GCM encrypt</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">ciphertext</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">chrome.storage.local</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a class="footer-link" href="index.html">← Back to mockup index</a>
+      <span class="font-mono text-xs text-muted">FR-02 · keys.tab</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setTheme(btn.getAttribute('data-theme-btn'));
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Placeholders from i18n
+    document.querySelectorAll('.key-input').forEach((input) => {
+      if (!input.value) input.setAttribute('data-i18n-placeholder', 'keys.placeholder');
+    });
+    // Re-run placeholder i18n on inputs that became empty
+    SideMind.applyLang(SideMind.getLang());
+
+    // Show/hide toggle
+    document.querySelectorAll('[data-toggle-target]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.getAttribute('data-toggle-target'));
+        if (!input) return;
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.textContent = SideMind.t('keys.btn.hide');
+        } else {
+          input.type = 'password';
+          btn.textContent = SideMind.t('keys.btn.show');
+        }
+      });
+    });
+
+    // Test button — animate to VALID or INVALID
+    document.querySelectorAll('[data-test]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const provider = btn.getAttribute('data-test');
+        const status = document.getElementById('status-' + provider);
+        if (!status) return;
+        const input = document.getElementById('key-' + provider);
+        if (!input.value.trim()) {
+          status.className = 'status s-notset';
+          status.textContent = SideMind.t('keys.status.notset');
+          return;
+        }
+        status.className = 'status s-testing';
+        status.textContent = SideMind.t('keys.status.testing');
+        btn.classList.add('spinner');
+        btn.textContent = SideMind.t('keys.status.testing');
+        setTimeout(() => {
+          btn.classList.remove('spinner');
+          btn.textContent = SideMind.t('keys.btn.test');
+          // Mock outcome: 80% valid, 20% invalid
+          const valid = Math.random() > 0.2;
+          status.className = 'status s-' + (valid ? 'valid' : 'invalid') + ' pulse';
+          status.textContent = SideMind.t(valid ? 'keys.status.valid' : 'keys.status.invalid');
+          showToast((valid ? '✓ ' : '✗ ') + provider + (valid ? ' — validated' : ' — invalid'));
+        }, 900);
+      });
+    });
+
+    // Save button
+    document.querySelectorAll('[data-save]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const provider = btn.getAttribute('data-save');
+        const input = document.getElementById('key-' + provider);
+        if (!input.value.trim()) {
+          showToast(provider + ' — ' + SideMind.t('keys.btn.test') + ' first');
+          return;
+        }
+        showToast(SideMind.t('keys.saved.toast') + ' · ' + provider);
+        const status = document.getElementById('status-' + provider);
+        status.className = 'status s-valid pulse';
+        status.textContent = SideMind.t('keys.status.valid');
+      });
+    });
+
+    // Delete button
+    document.querySelectorAll('[data-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const provider = btn.getAttribute('data-delete');
+        const input = document.getElementById('key-' + provider);
+        const status = document.getElementById('status-' + provider);
+        if (!input.value.trim()) return;
+        if (!confirm('Delete ' + provider + ' key?')) return;
+        input.value = '';
+        input.type = 'password';
+        input.dispatchEvent(new Event('input'));
+        status.className = 'status s-notset';
+        status.textContent = SideMind.t('keys.status.notset');
+        showToast(provider + ' · cleared');
+      });
+    });
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+  </script>
+</body>
+</html>

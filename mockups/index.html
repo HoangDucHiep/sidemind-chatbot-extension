@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · UI Mockup Index</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: var(--space-8) 0; }
+    .landing-header { border-bottom: var(--border-width-3) solid var(--ink); padding-bottom: var(--space-8); margin-bottom: var(--space-8); }
+    .brand-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+    .brand { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-5xl); line-height: 1; letter-spacing: -0.03em; }
+    .brand-mark { font-family: var(--font-heading); font-style: italic; color: var(--accent); }
+    .controls { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: var(--space-2) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .subtitle { font-family: var(--font-ui); font-size: var(--fs-md); color: var(--muted); margin-top: var(--space-3); }
+    .tagline { font-family: var(--font-heading); font-style: italic; font-size: var(--fs-xl); margin-top: var(--space-3); max-width: 720px; }
+
+    .section-head { display: flex; align-items: end; justify-content: space-between; margin-bottom: var(--space-4); border-bottom: var(--hairline); padding-bottom: var(--space-2); }
+    .section-title { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+    .section-count { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+
+    .card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+    @media (max-width: 768px) { .card-grid { grid-template-columns: 1fr; } }
+
+    .card { position: relative; }
+    .card-cite { position: absolute; top: var(--space-6); right: var(--space-6); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.5; }
+    .card:hover .card-cite { opacity: 1; }
+
+    .footer { margin-top: var(--space-16); padding-top: var(--space-6); border-top: var(--hairline); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); line-height: 1.7; }
+
+    .noise-overlay {
+      position: fixed; inset: 0; pointer-events: none; opacity: 0.3; z-index: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      mix-blend-mode: multiply;
+    }
+
+    .content { position: relative; z-index: 1; }
+  </style>
+</head>
+<body class="paper-grain">
+  <div class="noise-overlay"></div>
+  <main class="container content">
+    <header class="landing-header">
+      <div class="brand-row">
+        <div>
+          <h1 class="brand">Side<span class="brand-mark">Mind</span></h1>
+          <p class="subtitle" data-i18n-key="landing.subtitle">Chrome Extension UI Mockups — Editorial / Ink Design Language</p>
+          <p class="tagline" data-i18n-key="landing.tagline">No purple gradients. No generic SaaS. Every pixel intentional.</p>
+        </div>
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Language">
+            <button data-lang-btn="en" aria-pressed="true">EN</button>
+            <button data-lang-btn="vi" aria-pressed="false">VI</button>
+          </div>
+          <div class="seg" role="group" aria-label="Theme">
+            <button data-theme-btn="light" aria-pressed="true">Light</button>
+            <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <div class="section-head">
+        <div class="section-title" data-i18n-key="landing.section.title">Index</div>
+        <div class="section-count"><span data-i18n-key="landing.section.count">10 mockups</span></div>
+      </div>
+
+      <div class="card-grid">
+        <a class="card" href="01-side-panel.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">01</span>
+          <h2 class="card-title">Side Panel</h2>
+          <span class="card-meta" data-i18n-key="card.01.meta">FR-01 / FR-03 / FR-05 / FR-11</span>
+          <p class="text-body text-sm text-muted">Chat sidebar — empty, loading, active states with citations and slash commands.</p>
+        </a>
+
+        <a class="card" href="02-floating-button.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">02</span>
+          <h2 class="card-title">Floating Action Button</h2>
+          <span class="card-meta" data-i18n-key="card.02.meta">FR-01 / §3.1.2 SRS</span>
+          <p class="text-body text-sm text-muted">FAB on every page — idle, drag, active states with drag persistence.</p>
+        </a>
+
+        <a class="card" href="03-onboarding.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">03</span>
+          <h2 class="card-title">First-time Onboarding</h2>
+          <span class="card-meta" data-i18n-key="card.03.meta">NFR-04 #6</span>
+          <p class="text-body text-sm text-muted">3-step spotlight tour teaching context, input, and settings.</p>
+        </a>
+
+        <a class="card" href="04-options-api-keys.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">04</span>
+          <h2 class="card-title">Options · API Keys</h2>
+          <span class="card-meta" data-i18n-key="card.04.meta">FR-02</span>
+          <p class="text-body text-sm text-muted">Three providers — OpenAI, Anthropic, Gemini — test/save/delete state machine.</p>
+        </a>
+
+        <a class="card" href="05-options-general.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">05</span>
+          <h2 class="card-title">Options · General</h2>
+          <span class="card-meta" data-i18n-key="card.05.meta">FR-08</span>
+          <p class="text-body text-sm text-muted">Theme, model, temperature, max tokens, font size, page mode.</p>
+        </a>
+
+        <a class="card" href="06-options-privacy.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">06</span>
+          <h2 class="card-title">Options · Privacy</h2>
+          <span class="card-meta" data-i18n-key="card.06.meta">FR-09</span>
+          <p class="text-body text-sm text-muted">Telemetry toggle, incognito, danger zone clear-all-data.</p>
+        </a>
+
+        <a class="card" href="07-options-shortcuts.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">07</span>
+          <h2 class="card-title">Options · Shortcuts</h2>
+          <span class="card-meta" data-i18n-key="card.07.meta">FR-10</span>
+          <p class="text-body text-sm text-muted">Keyboard shortcuts — toggle panel, focus input, new chat, copy.</p>
+        </a>
+
+        <a class="card" href="08-history-modal.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">08</span>
+          <h2 class="card-title">History Modal</h2>
+          <span class="card-meta" data-i18n-key="card.08.meta">FR-06</span>
+          <p class="text-body text-sm text-muted">Search, tags, export, delete — faker data across 12 conversations.</p>
+        </a>
+
+        <a class="card" href="09-empty-error-states.html">
+          <span class="card-cite">↗</span>
+          <span class="card-num">09</span>
+          <h2 class="card-title">Empty / Error States</h2>
+          <span class="card-meta" data-i18n-key="card.09.meta">FR-02 / FR-03 (errors)</span>
+          <p class="text-body text-sm text-muted">No API key, network offline, quota exceeded, extraction failure.</p>
+        </a>
+
+        <a class="card" href="00-design-coverage.md">
+          <span class="card-cite">↗</span>
+          <span class="card-num">↺</span>
+          <h2 class="card-title">Coverage Matrix</h2>
+          <span class="card-meta">FR × FILE</span>
+          <p class="text-body text-sm text-muted">Mapping từ FR-xx trong SRS sang file mockup visualize nó.</p>
+        </a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p data-i18n-key="landing.footer">All mockups reference docs/SRS.md v0.3.0 — design language defined in .cursor/skills/frontend-design/SKILL.md.</p>
+      <p style="margin-top: 8px;" data-i18n-key="landing.coverage">FR coverage matrix: 00-design-coverage.md</p>
+      <p style="margin-top: 8px; color: var(--ink); font-weight: 600;">v0.3.0 · Editorial Ink · EN ⇄ VI</p>
+    </footer>
+  </main>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    // Wire theme toggle
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme-btn');
+        SideMind.setTheme(theme);
+        document.querySelectorAll('[data-theme-btn]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b === btn))
+        );
+      });
+    });
+    // Wire language toggle
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const lang = btn.getAttribute('data-lang-btn');
+        SideMind.setLang(lang);
+        document.querySelectorAll('[data-lang-btn]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b === btn))
+        );
+      });
+    });
+    // Sync initial segmented state
+    (function () {
+      const theme = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === theme))
+      );
+      const lang = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === lang))
+      );
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 05 — Options · General</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-4) var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); background: var(--paper); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .brand-mini { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .brand-mini .mark { color: var(--accent); font-style: italic; }
+
+    .options-frame { max-width: var(--options-width); margin: 0 auto; padding: var(--space-6); }
+    .tabs { display: flex; gap: 0; border-bottom: var(--hairline); margin-bottom: var(--space-8); }
+    .tab { padding: var(--space-3) var(--space-6); font-family: var(--font-ui); font-size: var(--fs-sm); font-weight: 500; background: transparent; color: var(--muted); border: 0; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; text-decoration: none; }
+    .tab:hover { color: var(--ink); }
+    .tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+    h1 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; margin-bottom: var(--space-6); }
+
+    .setting { display: grid; grid-template-columns: 240px 1fr; gap: var(--space-8); padding: var(--space-6) 0; border-bottom: var(--hairline); }
+    .setting:last-of-type { border-bottom: 0; }
+    .setting-label { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); margin-bottom: var(--space-2); }
+    .setting-help { font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--muted); line-height: 1.5; }
+
+    /* Theme picker */
+    .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); max-width: 480px; }
+    .theme-card { padding: var(--space-3); border: 1px solid var(--rule); cursor: pointer; background: var(--paper); display: flex; flex-direction: column; gap: var(--space-2); }
+    .theme-card.active { border-color: var(--ink); box-shadow: 4px 4px 0 var(--shadow-rgb); }
+    .theme-preview { height: 60px; border: 1px solid var(--ink); display: flex; }
+    .theme-preview > div { flex: 1; }
+    .theme-name { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* Model select */
+    .model-select { width: 100%; max-width: 480px; padding: var(--space-3); border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-family: var(--font-ui); font-size: var(--fs-sm); border-radius: 0; }
+    .model-list { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+    .model-pill { padding: 2px var(--space-2); border: 1px solid var(--rule); font-family: var(--font-mono); font-size: var(--fs-xs); display: inline-flex; align-items: center; gap: var(--space-1); }
+
+    /* Temperature slider */
+    .temp-row { display: flex; align-items: center; gap: var(--space-6); }
+    .temp-value { font-family: var(--font-mono); font-size: var(--fs-3xl); font-weight: 700; color: var(--accent); min-width: 80px; }
+    .temp-slider { flex: 1; max-width: 320px; }
+    .temp-marks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); padding: var(--space-1) 0; max-width: 320px; }
+
+    /* Max tokens */
+    .maxtokens-row { display: flex; align-items: center; gap: var(--space-3); }
+    .maxtokens-input { width: 120px; padding: var(--space-2) var(--space-3); border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-family: var(--font-mono); font-size: var(--fs-md); text-align: center; }
+    .maxtokens-bar { flex: 1; max-width: 480px; height: 8px; background: var(--rule); position: relative; }
+    .maxtokens-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 30%; background: var(--accent); }
+
+    /* Font size chips */
+    .fontsize-row { display: flex; gap: 0; max-width: 320px; }
+    .fontsize-chip { flex: 1; padding: var(--space-3); border: 1px solid var(--rule); background: var(--paper); cursor: pointer; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; text-align: center; }
+    .fontsize-chip + .fontsize-chip { border-left: 0; }
+    .fontsize-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .fontsize-chip .num { font-size: var(--fs-sm); }
+    .fontsize-sm .num { font-size: var(--fs-xs); }
+    .fontsize-md .num { font-size: var(--fs-sm); }
+    .fontsize-lg .num { font-size: var(--fs-lg); }
+
+    /* Page mode */
+    .pagemode-row { display: flex; flex-direction: column; gap: var(--space-2); }
+    .pagemode-radio { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; cursor: pointer; }
+    .pagemode-radio input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+    /* Footer */
+    .footer { margin-top: var(--space-12); padding-top: var(--space-6); border-top: var(--hairline); display: flex; gap: var(--space-3); justify-content: flex-end; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand-mini">Side<span class="mark">Mind</span> · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Settings</span></span>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="options-frame">
+    <div class="tabs">
+      <a class="tab" href="04-options-api-keys.html" data-i18n-key="keys.tab.title">API Keys</a>
+      <a class="tab active" href="05-options-general.html" data-i18n-key="gen.tab.title">General</a>
+      <a class="tab" href="06-options-privacy.html" data-i18n-key="priv.tab.title">Privacy</a>
+      <a class="tab" href="07-options-shortcuts.html" data-i18n-key="shortcuts.tab.title">Shortcuts</a>
+    </div>
+
+    <h1 data-i18n-key="gen.tab.title">General</h1>
+
+    <!-- Theme -->
+    <div class="setting">
+      <div>
+        <div class="setting-label" data-i18n-key="gen.section.theme">Theme</div>
+        <div class="setting-help">Light or dark interface — auto follows OS preference.</div>
+      </div>
+      <div class="theme-grid">
+        <div class="theme-card active" data-theme-card="light">
+          <div class="theme-preview">
+            <div style="background: #f5f1e8;"></div>
+            <div style="background: #1a1a1a;"></div>
+            <div style="background: #c8392f;"></div>
+          </div>
+          <span class="theme-name" data-i18n-key="gen.theme.light">Light</span>
+        </div>
+        <div class="theme-card" data-theme-card="dark">
+          <div class="theme-preview">
+            <div style="background: #1a1a1a;"></div>
+            <div style="background: #f5f1e8;"></div>
+            <div style="background: #e85d4e;"></div>
+          </div>
+          <span class="theme-name" data-i18n-key="gen.theme.dark">Dark</span>
+        </div>
+        <div class="theme-card" data-theme-card="auto">
+          <div class="theme-preview">
+            <div style="background: linear-gradient(135deg, #f5f1e8 50%, #1a1a1a 50%);"></div>
+          </div>
+          <span class="theme-name" data-i18n-key="gen.theme.auto">Auto</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Default model -->
+    <div class="setting">
+      <div>
+        <div class="setting-label" data-i18n-key="gen.section.model">Default model</div>
+        <div class="setting-help" data-i18n-key="gen.model.help">Vision-capable models accept images (FR-12).</div>
+      </div>
+      <div>
+        <select class="model-select" id="model-select">
+          <optgroup label="OpenAI">
+            <option value="gpt-4o">gpt-4o · vision</option>
+            <option value="gpt-4o-mini">gpt-4o-mini · vision</option>
+            <option value="gpt-3.5-turbo-instruct">gpt-3.5-turbo-instruct · text only</option>
+          </optgroup>
+          <optgroup label="Anthropic">
+            <option value="claude-sonnet-4">claude-sonnet-4 · vision</option>
+            <option value="claude-haiku">claude-haiku · vision</option>
+          </optgroup>
+          <optgroup label="Google">
+            <option value="gemini-2.5-pro">gemini-2.5-pro · vision</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash · vision</option>
+          </optgroup>
+        </select>
+        <div class="model-list">
+          <span class="model-pill"><span style="color: var(--accent);">●</span> vision</span>
+          <span class="model-pill" style="color: var(--muted);"><span style="color: var(--muted);">○</span> text-only</span>
+          <span class="model-pill">multimodal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Temperature -->
+    <div class="setting">
+      <div>
+        <div class="setting-label" data-i18n-key="gen.section.temperature">Temperature</div>
+        <div class="setting-help" data-i18n-key="gen.temperature.help">Lower = focused. Higher = creative.</div>
+      </div>
+      <div>
+        <div class="temp-row">
+          <div class="temp-value" id="temp-val">0.7</div>
+          <input type="range" min="0" max="2" step="0.1" value="0.7" class="temp-slider" id="temp-slider" />
+        </div>
+        <div class="temp-marks">
+          <span>0.0 focused</span>
+          <span>1.0</span>
+          <span>2.0 creative</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Max tokens -->
+    <div class="setting">
+      <div>
+        <div class="setting-label" data-i18n-key="gen.section.maxtokens">Max tokens</div>
+        <div class="setting-help" data-i18n-key="gen.maxtokens.help">Cap response length per turn.</div>
+      </div>
+      <div>
+        <div class="maxtokens-row">
+          <input type="number" class="maxtokens-input" value="2048" min="100" max="8000" id="maxtokens" />
+          <span class="font-mono text-xs text-muted">/ 8000</span>
+        </div>
+        <div class="maxtokens-bar" style="margin-top: var(--space-3);"><div class="maxtokens-bar-fill" id="maxtokens-bar"></div></div>
+      </div>
+    </div>
+
+    <!-- Font size -->
+    <div class="setting">
+      <div>
+        <div class="setting-label" data-i18n-key="gen.section.fontsize">Font size</div>
+        <div class="setting-help">Affects side panel and options page.</div>
+      </div>
+      <div class="fontsize-row" id="fontsize-row">
+        <div class="fontsize-chip fontsize-sm" data-size="sm"><div class="num">Aa</div><div data-i18n-key="gen.fontsize.sm">Small</div></div>
+        <div class="fontsize-chip fontsize-md active" data-size="md"><div class="num">Aa</div><div data-i18n-key="gen.fontsize.md">Medium</div></div>
+        <div class="fontsize-chip fontsize-lg" data-size="lg"><div class="num">Aa</div><div data-i18n-key="gen.fontsize.lg">Large</div></div>
+      </div>
+    </div>
+
+    <!-- Default page mode -->
+    <div class="setting">
+      <div>
+        <div class="setting-label" data-i18n-key="gen.section.pagemode">Default page mode</div>
+        <div class="setting-help">How SideMind treats the page context by default.</div>
+      </div>
+      <div class="pagemode-row">
+        <label class="pagemode-radio">
+          <input type="radio" name="pagemode" value="auto" checked />
+          <span data-i18n-key="gen.pagemode.auto">Auto (detect)</span>
+        </label>
+        <label class="pagemode-radio">
+          <input type="radio" name="pagemode" value="sum" />
+          <span data-i18n-key="gen.pagemode.sum">Always summarize</span>
+        </label>
+        <label class="pagemode-radio">
+          <input type="radio" name="pagemode" value="full" />
+          <span data-i18n-key="gen.pagemode.full">Always full text</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <button class="btn" id="discard" data-i18n-key="gen.btn.discard">Discard</button>
+      <button class="btn btn-filled" id="save" data-i18n-key="gen.btn.save">Save</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setTheme(btn.getAttribute('data-theme-btn'));
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Theme cards inside General also flip theme
+    document.querySelectorAll('[data-theme-card]').forEach((card) => {
+      card.addEventListener('click', () => {
+        const v = card.getAttribute('data-theme-card');
+        document.querySelectorAll('[data-theme-card]').forEach((c) => c.classList.toggle('active', c === card));
+        if (v === 'light' || v === 'dark') {
+          SideMind.setTheme(v);
+          document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === v)));
+        }
+      });
+    });
+
+    // Temperature slider
+    const tempSlider = document.getElementById('temp-slider');
+    const tempVal = document.getElementById('temp-val');
+    tempSlider.addEventListener('input', () => {
+      tempVal.textContent = parseFloat(tempSlider.value).toFixed(1);
+    });
+
+    // Max tokens bar
+    const mt = document.getElementById('maxtokens');
+    const mtBar = document.getElementById('maxtokens-bar');
+    function syncBar() {
+      const v = Math.max(100, Math.min(8000, parseInt(mt.value || '0')));
+      mtBar.style.width = ((v / 8000) * 100) + '%';
+    }
+    mt.addEventListener('input', syncBar);
+    syncBar();
+
+    // Font size preview
+    document.querySelectorAll('#fontsize-row .fontsize-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#fontsize-row .fontsize-chip').forEach((c) => c.classList.toggle('active', c === chip));
+        // visual demo: scale body? (skip — keep whole-page preview simple)
+      });
+    });
+
+    // Save / Discard
+    document.getElementById('save').addEventListener('click', () => {
+      const t = document.getElementById('toast');
+      t.textContent = SideMind.t('gen.saved.toast');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    });
+    document.getElementById('discard').addEventListener('click', () => {
+      tempSlider.value = '0.7'; tempVal.textContent = '0.7';
+      mt.value = '2048'; syncBar();
+    });
+  </script>
+</body>
+</html>

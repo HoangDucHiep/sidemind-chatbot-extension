@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 01 — Side Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    /* Mockup wrapper — staging for 3 states */
+    body { padding: var(--space-8) 0; }
+    .stage-top { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--space-3); padding-bottom: var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); margin-bottom: var(--space-8); }
+    .stage-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-3xl); line-height: 1; }
+    .stage-back { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .stage-back:hover { color: var(--accent); }
+
+    .state-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); align-items: start; }
+    @media (max-width: 1200px) { .state-grid { grid-template-columns: 1fr; } }
+
+    .state { display: flex; flex-direction: column; gap: var(--space-3); }
+    .state-label { display: flex; align-items: center; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: var(--hairline); }
+    .state-name { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+    .state-tag { font-family: var(--font-mono); font-size: var(--fs-xs); padding: 2px 6px; border: 1px solid var(--rule); }
+
+    /* ============ Side panel mockup (320-360px wide) ============ */
+    .side-panel {
+      width: 360px;
+      height: 720px;
+      max-height: 85vh;
+      background: var(--paper);
+      border: var(--hairline);
+      display: flex;
+      flex-direction: column;
+      font-size: var(--fs-sm);
+      box-shadow: 8px 8px 0 var(--shadow-rgb);
+      overflow: hidden;
+    }
+
+    .sp-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: var(--hairline);
+      flex-shrink: 0;
+    }
+    .sp-brand { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); letter-spacing: -0.01em; }
+    .sp-brand-mark { color: var(--accent); font-style: italic; }
+    .sp-header-actions { display: flex; gap: var(--space-1); }
+    .sp-icon-btn {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background var(--motion-fast);
+    }
+    .sp-icon-btn:hover { background: var(--ink); color: var(--paper); }
+
+    .sp-context {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: var(--hairline);
+      flex-shrink: 0;
+    }
+    .sp-context-eyebrow { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: var(--space-1); }
+    .sp-context-title { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); line-height: 1.25; margin-bottom: var(--space-1); }
+    .sp-context-meta { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+    .sp-context-meta-dot { width: 3px; height: 3px; background: var(--muted); border-radius: 50%; }
+
+    .sp-sources {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: var(--hairline);
+      flex-shrink: 0;
+    }
+    .sp-sources-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .sp-source-chip {
+      display: inline-flex; align-items: center; gap: var(--space-1);
+      padding: 2px var(--space-2);
+      border: 1px solid var(--rule);
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+    }
+    .sp-source-chip.ready { border-color: var(--ink); }
+    .sp-source-chip .close { margin-left: var(--space-1); cursor: pointer; opacity: 0.5; }
+    .sp-source-chip .close:hover { opacity: 1; color: var(--accent); }
+    .sp-add-btn {
+      padding: 2px var(--space-2);
+      border: 1px dashed var(--rule);
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+    }
+    .sp-add-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+    .sp-add-popup {
+      position: absolute;
+      z-index: 50;
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      width: 280px;
+      max-height: 280px;
+      overflow-y: auto;
+      box-shadow: 4px 4px 0 var(--shadow-rgb);
+      display: none;
+    }
+    .sp-add-popup.open { display: block; }
+    .sp-add-popup-item {
+      display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-bottom: var(--hairline);
+      cursor: pointer;
+    }
+    .sp-add-popup-item:last-child { border-bottom: 0; }
+    .sp-add-popup-item:hover { background: var(--ink); color: var(--paper); }
+    .sp-favicon { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .sp-tab-title { font-family: var(--font-ui); font-size: var(--fs-xs); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sp-tab-url { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+
+    .sp-messages { flex: 1; overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+
+    .sp-message { display: flex; gap: var(--space-3); align-items: flex-start; }
+    .sp-message.user { flex-direction: row-reverse; }
+    .sp-avatar {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--ink);
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .sp-message.user .sp-avatar { background: var(--ink); color: var(--paper); }
+    .sp-bubble {
+      max-width: 80%;
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--rule);
+      font-size: var(--fs-sm);
+      line-height: 1.5;
+    }
+    .sp-message.user .sp-bubble { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .sp-bubble ul { margin: 0; padding-left: 0; list-style: none; }
+    .sp-bubble ul li { padding: 2px 0 2px 16px; position: relative; }
+    .sp-bubble ul li::before { content: '—'; position: absolute; left: 0; color: var(--muted); font-family: var(--font-mono); }
+    .sp-bubble .citation { font-size: 10px; vertical-align: super; }
+    .sp-message-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+    .sp-message-actions span { cursor: pointer; }
+    .sp-message-actions span:hover { color: var(--accent); }
+
+    /* Empty state */
+    .sp-empty {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: var(--space-6);
+      text-align: center;
+      gap: var(--space-3);
+    }
+    .sp-empty-hero { font-family: var(--font-heading); font-style: italic; font-size: var(--fs-2xl); line-height: 1.2; }
+    .sp-empty-sub { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .sp-empty-suggest { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; margin-top: var(--space-3); }
+    .sp-empty-suggest-item {
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--rule);
+      font-family: var(--font-mono);
+      font-size: var(--fs-xs);
+      cursor: pointer;
+    }
+    .sp-empty-suggest-item:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .sp-empty-suggest-item .cmd { color: var(--accent); font-weight: 600; }
+    .sp-empty-suggest-item:hover .cmd { color: var(--paper); }
+
+    /* Loading skeleton */
+    .sk-row { height: 14px; margin-bottom: var(--space-2); }
+    .sk-row.short { width: 40%; }
+
+    /* Streaming caret */
+    .sp-stream { display: inline-flex; align-items: baseline; gap: var(--space-1); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); padding: var(--space-2) var(--space-3); border: 1px dashed var(--rule); }
+    .sp-stream .caret { width: 6px; height: 12px; }
+
+    .sp-input {
+      border-top: var(--hairline);
+      padding: var(--space-3);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .sp-input-row { display: flex; align-items: center; gap: var(--space-2); border: 1px solid var(--ink); padding: var(--space-2) var(--space-3); }
+    .sp-input-row .attach { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); cursor: pointer; white-space: nowrap; }
+    .sp-input-row .attach:hover { color: var(--accent); }
+    .sp-input-row input { flex: 1; border: 0; background: transparent; outline: none; font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--ink); padding: 0; }
+    .sp-input-row input::placeholder { color: var(--muted); }
+    .sp-input-row .send { padding: var(--space-1) var(--space-2); border: 1px solid var(--ink); font-family: var(--font-mono); font-size: var(--fs-xs); cursor: pointer; }
+    .sp-input-row .send:hover { background: var(--ink); color: var(--paper); }
+    .sp-input-hint { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); padding-top: var(--space-1); }
+    .sp-input-hint kbd { font-family: var(--font-mono); padding: 0 4px; border: 1px solid var(--rule); margin: 0 2px; }
+
+    /* Slash command autocomplete */
+    .sp-slash {
+      position: absolute;
+      bottom: 100%;
+      left: var(--space-3);
+      right: var(--space-3);
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--shadow-rgb);
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+      z-index: 10;
+      margin-bottom: var(--space-2);
+    }
+    .sp-slash.open { display: block; }
+    .sp-slash-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); cursor: pointer; border-bottom: var(--hairline); }
+    .sp-slash-item:last-child { border-bottom: 0; }
+    .sp-slash-item:hover, .sp-slash-item.active { background: var(--ink); color: var(--paper); }
+    .sp-slash-item:hover .cmd, .sp-slash-item.active .cmd { color: var(--paper); }
+    .sp-slash-item .cmd { font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--accent); min-width: 80px; }
+    .sp-slash-item .desc { font-size: var(--fs-xs); }
+
+    /* Citation reference box (for click demo) */
+    .sp-cite-ref {
+      margin-top: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      font-size: var(--fs-xs);
+      font-style: italic;
+      font-family: var(--font-heading);
+      display: none;
+    }
+    .sp-cite-ref.show { display: block; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <!-- Top bar: title + theme/lang + back -->
+    <div class="stage-top">
+      <div>
+        <div class="text-mono-uppercase mb-2">Mockup · 01</div>
+        <h1 class="stage-title">Side Panel <span class="font-italic text-muted" style="font-size: 18px;">— three states</span></h1>
+      </div>
+      <div style="display: flex; gap: var(--space-3); align-items: center;">
+        <div class="seg" style="display: flex; border: 1px solid var(--ink);">
+          <button data-lang-btn="en" aria-pressed="true" style="padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em;">EN</button>
+          <button data-lang-btn="vi" aria-pressed="false" style="padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em;">VI</button>
+        </div>
+        <div class="seg" style="display: flex; border: 1px solid var(--ink);">
+          <button data-theme-btn="light" aria-pressed="true" style="padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em;">Light</button>
+          <button data-theme-btn="dark" aria-pressed="false" style="padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em;">Dark</button>
+        </div>
+        <a class="stage-back" href="index.html">← Index</a>
+      </div>
+    </div>
+
+    <div class="state-grid">
+      <!-- =================== STATE 1: EMPTY =================== -->
+      <div class="state">
+        <div class="state-label">
+          <span class="state-name">01 · Empty</span>
+          <span class="state-tag">FR-01.a</span>
+        </div>
+
+        <div class="side-panel">
+          <div class="sp-header">
+            <span class="sp-brand">Side<span class="sp-brand-mark">Mind</span></span>
+            <div class="sp-header-actions">
+              <button class="sp-icon-btn" aria-label="Menu" data-i18n-aria="sidepanel.context.menu">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect y="2" width="14" height="1.5"/><rect y="6" width="14" height="1.5"/><rect y="10" width="14" height="1.5"/></svg>
+              </button>
+              <button class="sp-icon-btn" aria-label="Close" data-i18n-aria="sidepanel.context.close">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2 L12 12 M2 12 L12 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-context">
+            <div class="sp-context-eyebrow" data-i18n-key="sidepanel.context.label">Context</div>
+            <div class="sp-context-title">"How attention sinks affect LLM inference"</div>
+            <div class="sp-context-meta">
+              <span>YouTube</span>
+              <span class="sp-context-meta-dot"></span>
+              <span>2,341 words</span>
+              <span class="sp-context-meta-dot"></span>
+              <span>2m ago</span>
+            </div>
+          </div>
+
+          <div class="sp-empty">
+            <div class="sp-empty-hero" data-i18n-key="sidepanel.empty.hero">Ask about this page.</div>
+            <div class="sp-empty-sub" data-i18n-key="sidepanel.empty.sub">Or run a slash command.</div>
+            <div class="sp-empty-suggest">
+              <div class="sp-empty-suggest-item"><span class="cmd">/tldr</span></div>
+              <div class="sp-empty-suggest-item"><span class="cmd">/summary</span></div>
+              <div class="sp-empty-suggest-item"><span class="cmd">/explain</span></div>
+              <div class="sp-empty-suggest-item"><span class="cmd">/translate</span></div>
+            </div>
+          </div>
+
+          <div class="sp-input">
+            <div class="sp-input-row">
+              <span class="attach" data-i18n-key="sidepanel.action.attach">📎 Attach</span>
+              <input type="text" data-i18n-placeholder="sidepanel.input.placeholder" placeholder="Ask anything…" data-slash-input />
+              <span class="send" data-i18n-key="sidepanel.context.refresh">Send</span>
+            </div>
+            <div class="sp-input-hint" data-i18n-key="sidepanel.input.slashHint">Type <kbd>/</kbd> for commands</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================== STATE 2: LOADING =================== -->
+      <div class="state">
+        <div class="state-label">
+          <span class="state-name">02 · Loading</span>
+          <span class="state-tag">NFR-01</span>
+        </div>
+
+        <div class="side-panel">
+          <div class="sp-header">
+            <span class="sp-brand">Side<span class="sp-brand-mark">Mind</span></span>
+            <div class="sp-header-actions">
+              <button class="sp-icon-btn" aria-label="Menu">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect y="2" width="14" height="1.5"/><rect y="6" width="14" height="1.5"/><rect y="10" width="14" height="1.5"/></svg>
+              </button>
+              <button class="sp-icon-btn" aria-label="Close">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2 L12 12 M2 12 L12 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-context">
+            <div class="sp-context-eyebrow">Context</div>
+            <div class="sp-context-title">"Rust async patterns: tokio vs async-std"</div>
+            <div class="sp-context-meta">
+              <span>Article</span>
+              <span class="sp-context-meta-dot"></span>
+              <span>4,892 words</span>
+              <span class="sp-context-meta-dot"></span>
+              <span class="badge badge-muted" style="font-size:9px;">EXTRACTING…</span>
+            </div>
+          </div>
+
+          <div class="sp-messages">
+            <div class="sp-message user">
+              <div class="sp-avatar" data-i18n-key="common.you">You</div>
+              <div class="sp-bubble" data-i18n-key="sidepanel.user.q">Summarize this video.</div>
+            </div>
+            <div class="sp-message">
+              <div class="sp-avatar" data-i18n-key="common.ai">AI</div>
+              <div class="sp-bubble" style="width: 100%; max-width: 100%; padding: var(--space-4);">
+                <div class="skeleton sk-row" style="width: 92%;"></div>
+                <div class="skeleton sk-row" style="width: 88%;"></div>
+                <div class="skeleton sk-row" style="width: 75%;"></div>
+                <div class="skeleton sk-row short" style="margin-top: var(--space-3);"></div>
+                <div class="sp-stream" style="margin-top: var(--space-3);">
+                  <span class="font-mono" data-i18n-key="sidepanel.loading.thinking">Thinking…</span>
+                  <span class="caret"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sp-input">
+            <div class="sp-input-row">
+              <span class="attach">📎 2 files</span>
+              <input type="text" placeholder="Ask anything…" disabled />
+              <span class="send">Send</span>
+            </div>
+            <div class="sp-input-hint">Streaming in progress — input locked.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================== STATE 3: ACTIVE =================== -->
+      <div class="state">
+        <div class="state-label">
+          <span class="state-name">03 · Active Chat</span>
+          <span class="state-tag">FR-03 / FR-05 / FR-11</span>
+        </div>
+
+        <div class="side-panel" id="panel-active">
+          <div class="sp-header">
+            <span class="sp-brand">Side<span class="sp-brand-mark">Mind</span></span>
+            <div class="sp-header-actions">
+              <button class="sp-icon-btn" aria-label="Menu">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect y="2" width="14" height="1.5"/><rect y="6" width="14" height="1.5"/><rect y="10" width="14" height="1.5"/></svg>
+              </button>
+              <button class="sp-icon-btn" aria-label="Close">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2 L12 12 M2 12 L12 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-context">
+            <div class="sp-context-eyebrow">Context</div>
+            <div class="sp-context-title">"How attention sinks affect LLM inference"</div>
+            <div class="sp-context-meta">
+              <span>YouTube</span>
+              <span class="sp-context-meta-dot"></span>
+              <span>2,341 words</span>
+              <span class="sp-context-meta-dot"></span>
+              <span>2m ago</span>
+              <span class="badge badge-ink" style="font-size: 9px;" data-i18n-key="common.ready">READY</span>
+            </div>
+          </div>
+
+          <div class="sp-sources">
+            <div class="sp-sources-row" id="source-chips">
+              <span class="sp-source-chip ready">[tab1] <span class="font-mono">✓</span> <span class="close" data-remove>×</span></span>
+              <span class="sp-source-chip ready">[tab2] <span class="font-mono">✓</span> <span class="close" data-remove>×</span></span>
+              <span class="sp-add-btn" id="add-tab-btn">+ Add tab</span>
+            </div>
+            <div class="sp-add-popup" id="add-popup">
+              <div class="sp-add-popup-item" data-add="3">
+                <span class="sp-favicon" style="background: #c8392f;"></span>
+                <div style="flex: 1; min-width: 0;">
+                  <div class="sp-tab-title">arxiv.org/abs/2410.12192</div>
+                  <div class="sp-tab-url">arxiv.org</div>
+                </div>
+              </div>
+              <div class="sp-add-popup-item" data-add="4">
+                <span class="sp-favicon" style="background: #2a6f97;"></span>
+                <div style="flex: 1; min-width: 0;">
+                  <div class="sp-tab-title">GitHub · rust-lang/rust issues #129195</div>
+                  <div class="sp-tab-url">github.com</div>
+                </div>
+              </div>
+              <div class="sp-add-popup-item" data-add="5">
+                <span class="sp-favicon" style="background: #6b6357;"></span>
+                <div style="flex: 1; min-width: 0;">
+                  <div class="sp-tab-title">MDN — Web Workers API</div>
+                  <div class="sp-tab-url">developer.mozilla.org</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sp-messages" id="messages">
+            <div class="sp-message user">
+              <div class="sp-avatar" data-i18n-key="common.you">You</div>
+              <div class="sp-bubble" data-i18n-key="sidepanel.user.q">Summarize this video.</div>
+            </div>
+            <div class="sp-message">
+              <div class="sp-avatar" data-i18n-key="common.ai">AI</div>
+              <div class="sp-bubble">
+                <strong data-i18n-key="sidepanel.ai.response">The video walks through three findings:</strong>
+                <ul style="margin-top: var(--space-2);">
+                  <li><span data-i18n-key="sidepanel.ai.bullet1">Performance improves 40% on baseline hardware.</span> <a class="citation" data-cite="1">[1]</a></li>
+                  <li><span data-i18n-key="sidepanel.ai.bullet2">Operational cost drops by 25% at scale.</span> <a class="citation" data-cite="2">[2]</a></li>
+                  <li><span data-i18n-key="sidepanel.ai.bullet3">User-reported satisfaction climbs across cohorts.</span> <a class="citation" data-cite="3">[3]</a></li>
+                </ul>
+                <div class="sp-message-actions">
+                  <span data-i18n-key="sidepanel.action.copy">Copy</span>
+                  <span data-i18n-key="sidepanel.action.regenerate">Regenerate</span>
+                </div>
+                <div class="sp-cite-ref" id="cite-ref" data-cite-target>
+                  <span class="font-mono text-xs text-accent">[n]</span> Quote from your cited source appears here. Click another citation to swap.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sp-input">
+            <div class="sp-slash" id="slash-popup"></div>
+            <div class="sp-input-row">
+              <span class="attach">📎 3 files</span>
+              <input type="text" id="active-input" placeholder="Ask anything…" data-slash-input />
+              <span class="send" id="active-send">Send</span>
+            </div>
+            <div class="sp-input-hint">Press <kbd>/</kbd> for commands · <kbd>Enter</kbd> to send</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <section style="margin-top: var(--space-12); padding: var(--space-6); border: var(--hairline); background: var(--paper);">
+      <div class="text-eyebrow">Behaviors visible</div>
+      <h2 class="text-headline" style="margin: var(--space-2) 0 var(--space-4);">Interactions on the Active panel</h2>
+      <ul style="list-style: none; padding: 0; display: grid; gap: var(--space-2); font-family: var(--font-mono); font-size: var(--fs-sm);">
+        <li>· Click <span class="citation">[1]</span> on any bullet — citation reference box flashes below AI reply.</li>
+        <li>· Click <code style="background: var(--rule); padding: 0 4px;">×</code> on a source chip — tab removed with slide animation.</li>
+        <li>· Click <code style="background: var(--rule); padding: 0 4px;">+ Add tab</code> — popup of 3 mock tabs appears.</li>
+        <li>· Type <code style="background: var(--rule); padding: 0 4px;">/</code> in input — slash command dropdown opens (8 commands).</li>
+        <li>· Type a question, click Send — AI response streams character-by-character with blinking caret.</li>
+        <li>· Toggle theme/lang at top right — entire panel re-skins instantly.</li>
+      </ul>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    // Theme + lang controls
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme-btn');
+        SideMind.setTheme(theme);
+        document.querySelectorAll('[data-theme-btn]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b === btn))
+        );
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b === btn))
+        );
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t))
+      );
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l))
+      );
+    })();
+
+    // ============= Slash command dropdown =============
+    const SLASH = [
+      { key: 'slash.summarize', desc: 'slash.summarize.desc' },
+      { key: 'slash.explain', desc: 'slash.explain.desc' },
+      { key: 'slash.translate', desc: 'slash.translate.desc' },
+      { key: 'slash.rewrite', desc: 'slash.rewrite.desc' },
+      { key: 'slash.code', desc: 'slash.code.desc' },
+      { key: 'slash.tldr', desc: 'slash.tldr.desc' },
+      { key: 'slash.summary', desc: 'slash.summary.desc' },
+      { key: 'slash.full', desc: 'slash.full.desc' },
+    ];
+
+    document.querySelectorAll('[data-slash-input]').forEach((input) => {
+      const popup = input.parentElement.parentElement.querySelector('.sp-slash');
+      let activeIdx = 0;
+
+      function render(filter) {
+        if (!popup) return;
+        const filtered = SLASH.filter((s) => !filter || s.key.toLowerCase().includes(filter.toLowerCase()));
+        if (filtered.length === 0 || !filter || filter === '/') {
+          popup.classList.remove('open');
+          return;
+        }
+        popup.classList.add('open');
+        popup.innerHTML = filtered
+          .map(
+            (s, i) => `
+            <div class="sp-slash-item ${i === activeIdx ? 'active' : ''}" data-slash-cmd="${s.key}">
+              <span class="cmd">${SideMind.t(s.key)}</span>
+              <span class="desc">${SideMind.t(s.desc)}</span>
+            </div>`
+          )
+          .join('');
+        popup.querySelectorAll('[data-slash-cmd]').forEach((el) => {
+          el.addEventListener('click', () => {
+            input.value = el.getAttribute('data-slash-cmd') + ' ';
+            popup.classList.remove('open');
+            input.focus();
+          });
+        });
+      }
+      input.addEventListener('input', () => {
+        const v = input.value;
+        if (v.startsWith('/')) render(v);
+        else render(null);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (!popup || !popup.classList.contains('open')) return;
+        if (e.key === 'ArrowDown') { activeIdx = (activeIdx + 1) % SLASH.length; render(input.value); e.preventDefault(); }
+        if (e.key === 'ArrowUp') { activeIdx = (activeIdx - 1 + SLASH.length) % SLASH.length; render(input.value); e.preventDefault(); }
+        if (e.key === 'Enter' && popup.classList.contains('open')) {
+          const items = popup.querySelectorAll('[data-slash-cmd]');
+          if (items[activeIdx]) {
+            input.value = items[activeIdx].getAttribute('data-slash-cmd') + ' ';
+            popup.classList.remove('open');
+            e.preventDefault();
+          }
+        }
+        if (e.key === 'Escape') popup.classList.remove('open');
+      });
+    });
+
+    // ============= Source chip remove =============
+    document.querySelectorAll('[data-remove]').forEach((close) => {
+      close.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const chip = close.closest('.sp-source-chip');
+        chip.style.transform = 'translateX(20px)';
+        chip.style.opacity = '0';
+        setTimeout(() => chip.remove(), 200);
+      });
+    });
+
+    // ============= + Add tab popup =============
+    const addBtn = document.getElementById('add-tab-btn');
+    const popup = document.getElementById('add-popup');
+    const chipsRow = document.getElementById('source-chips');
+    if (addBtn && popup) {
+      addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        popup.classList.toggle('open');
+        // Position popup below the button
+        const rect = addBtn.getBoundingClientRect();
+        const chipsRect = chipsRow.getBoundingClientRect();
+        popup.style.top = (rect.bottom - chipsRect.top + 4) + 'px';
+        popup.style.left = '0';
+      });
+      popup.querySelectorAll('[data-add]').forEach((item) => {
+        item.addEventListener('click', () => {
+          const id = item.getAttribute('data-add');
+          const tabTitle = item.querySelector('.sp-tab-title').textContent;
+          const favColor = item.querySelector('.sp-favicon').style.background;
+          const chip = document.createElement('span');
+          chip.className = 'sp-source-chip extracting';
+          chip.innerHTML = `[tab${id}] <span class="font-mono" style="opacity:.5;">···</span>`;
+          chip.title = tabTitle;
+          // Color the dot from favicon
+          const dot = document.createElement('span');
+          dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${favColor}; margin-left: 4px; display: inline-block;`;
+          chip.appendChild(dot);
+          const close = document.createElement('span');
+          close.className = 'close';
+          close.setAttribute('data-remove', '');
+          close.textContent = '×';
+          chip.appendChild(close);
+          insertBefore(chip, addBtn);
+          chip.querySelector('[data-remove]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            chip.style.transition = 'all 200ms';
+            chip.style.transform = 'translateX(20px)';
+            chip.style.opacity = '0';
+            setTimeout(() => chip.remove(), 200);
+          });
+          // After 1.2s mark as ready
+          setTimeout(() => {
+            const dotChild = chip.querySelector('.font-mono');
+            if (dotChild) dotChild.textContent = '✓';
+            chip.classList.add('ready');
+          }, 1200);
+          popup.classList.remove('open');
+        });
+      });
+      document.addEventListener('click', (e) => {
+        if (!popup.contains(e.target) && e.target !== addBtn) popup.classList.remove('open');
+      });
+    }
+
+    // ============= Citation click =============
+    document.querySelectorAll('[data-cite]').forEach((c) => {
+      c.addEventListener('click', () => {
+        const ref = document.getElementById('cite-ref');
+        if (!ref) return;
+        ref.classList.add('show');
+        ref.style.animation = 'none';
+        setTimeout(() => { ref.style.animation = ''; }, 10);
+        ref.style.background = 'var(--highlight)';
+        setTimeout(() => { ref.style.background = 'var(--accent-soft)'; }, 600);
+      });
+    });
+
+    // ============= Send → streaming text =============
+    const sendBtn = document.getElementById('active-send');
+    const activeInput = document.getElementById('active-input');
+    const messages = document.getElementById('messages');
+    const TARGET_TEXT_EN = "Here is a quick summary. The video notes performance gains up to 40% on baseline hardware, operational cost reductions of 25% at scale, and a measurable lift in user satisfaction across cohorts. Want me to deep-dive any of these?";
+    const TARGET_TEXT_VI = "Tóm tắt nhanh. Video ghi nhận hiệu suất tăng tới 40% trên phần cứng cơ sở, chi phí vận hành giảm 25% khi mở rộng, và mức hài lòng người dùng tăng qua các nhóm. Bạn muốn đi sâu vào ý nào?";
+    if (sendBtn && activeInput && messages) {
+      sendBtn.addEventListener('click', () => {
+        const text = activeInput.value.trim();
+        if (!text) return;
+        activeInput.value = '';
+        activeInput.disabled = true;
+        sendBtn.style.opacity = '0.4';
+        sendBtn.style.pointerEvents = 'none';
+        // User message
+        const userMsg = document.createElement('div');
+        userMsg.className = 'sp-message user';
+        userMsg.innerHTML = `<div class="sp-avatar">${SideMind.t('common.you')}</div><div class="sp-bubble">${escapeHtml(text)}</div>`;
+        messages.appendChild(userMsg);
+        // AI placeholder
+        const aiMsg = document.createElement('div');
+        aiMsg.className = 'sp-message';
+        aiMsg.innerHTML = `<div class="sp-avatar">${SideMind.t('common.ai')}</div><div class="sp-bubble"><span class="sp-stream-target"></span><span class="caret"></span></div>`;
+        messages.appendChild(aiMsg);
+        messages.scrollTop = messages.scrollHeight;
+        setTimeout(() => {
+          const target = aiMsg.querySelector('.sp-stream-target');
+          const fullText = SideMind.getLang() === 'vi' ? TARGET_TEXT_VI : TARGET_TEXT_EN;
+          let i = 0;
+          const tick = () => {
+            if (i >= fullText.length) {
+              // Done — enable input
+              activeInput.disabled = false;
+              sendBtn.style.opacity = '1';
+              sendBtn.style.pointerEvents = '';
+              activeInput.focus();
+              return;
+            }
+            target.textContent = fullText.slice(0, ++i);
+            messages.scrollTop = messages.scrollHeight;
+            setTimeout(tick, 8 + Math.random() * 12);
+          };
+          tick();
+        }, 600);
+      });
+      activeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendBtn.click();
+        }
+      });
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // Toast helper
+    window.__toast = function (msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    };
+  </script>
+</body>
+</html>

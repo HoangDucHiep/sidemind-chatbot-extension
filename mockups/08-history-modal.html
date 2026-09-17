@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · 08 — History Modal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: 0; background: var(--paper); }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: var(--space-4) var(--space-6); border-bottom: var(--border-width-3) solid var(--ink); background: var(--paper); }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .brand-mini { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); }
+    .brand-mini .mark { color: var(--accent); font-style: italic; }
+
+    /* Background page peeking */
+    .bg-page { padding: var(--space-8) var(--space-6); max-width: 720px; margin: 0 auto; opacity: 0.4; }
+    .bg-page h2 { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-2xl); margin-bottom: var(--space-2); }
+    .bg-page p { font-family: var(--font-ui); font-size: var(--fs-md); line-height: 1.6; margin-bottom: var(--space-3); }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,26,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; padding: var(--space-4); }
+    .modal {
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--shadow-rgb);
+      width: 720px;
+      max-width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header { padding: var(--space-4) var(--space-6); border-bottom: var(--hairline); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .modal-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-2xl); }
+    .modal-title .meta { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); margin-left: var(--space-3); font-weight: 400; }
+
+    .modal-search { padding: var(--space-3) var(--space-6); border-bottom: var(--hairline); display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+    .modal-search-icon { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-md); }
+    .modal-search input { flex: 1; border: 0; background: transparent; outline: none; font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink); padding: var(--space-2) 0; }
+    .modal-search input::placeholder { color: var(--muted); }
+    .modal-search-bar { flex: 1; border: 1px solid var(--ink); padding: var(--space-2) var(--space-3); display: flex; align-items: center; gap: var(--space-2); background: var(--paper); }
+
+    .modal-tags { padding: var(--space-2) var(--space-6); border-bottom: var(--hairline); display: flex; gap: var(--space-2); flex-shrink: 0; flex-wrap: wrap; align-items: center; }
+    .tag { padding: 2px var(--space-2); border: 1px solid var(--rule); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; background: var(--paper); color: var(--ink); }
+    .tag.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .tag .x { margin-left: 4px; opacity: 0.5; }
+
+    .conv-list { overflow-y: auto; flex: 1; }
+    .conv-row {
+      display: grid;
+      grid-template-columns: 16px 1fr 80px 100px 80px;
+      gap: var(--space-4);
+      align-items: center;
+      padding: var(--space-3) var(--space-6);
+      border-bottom: var(--hairline);
+      cursor: pointer;
+      transition: background var(--motion-fast);
+      position: relative;
+    }
+    .conv-row:hover { background: var(--ink); color: var(--paper); }
+    .conv-row:hover .conv-meta,
+    .conv-row:hover .conv-stat { color: var(--paper); }
+    .conv-row:hover .conv-actions-inline { display: flex; }
+    .conv-dot { width: 12px; height: 12px; flex-shrink: 0; }
+    .conv-title { font-family: var(--font-heading); font-weight: 600; font-size: var(--fs-md); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .conv-tags { display: flex; gap: 4px; margin-top: 4px; }
+    .conv-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+    .conv-stat { font-family: var(--font-mono); font-size: var(--fs-sm); text-align: right; color: var(--ink); font-weight: 600; }
+    .conv-stat .label { font-size: 10px; color: var(--muted); display: block; font-weight: 400; text-transform: uppercase; letter-spacing: 0.08em; }
+    .conv-actions-inline { display: none; align-items: center; gap: var(--space-2); }
+    .conv-action-inline { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--accent); cursor: pointer; }
+    .conv-action-inline:hover { color: var(--paper); }
+    .conv-row:hover .conv-actions-inline { display: flex; }
+
+    .modal-empty { padding: var(--space-8) var(--space-6); text-align: center; color: var(--muted); font-family: var(--font-heading); font-style: italic; display: none; }
+    .modal-empty.show { display: block; }
+
+    .modal-footer { padding: var(--space-4) var(--space-6); border-top: var(--hairline); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .footer-left { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+    .footer-actions { display: flex; gap: var(--space-2); }
+  </style>
+</head>
+<body>
+  <!-- Faded background page so the modal looks overlaid -->
+  <div class="bg-page">
+    <h2>Some background article</h2>
+    <p>This represents the active page when the user opens History from the [≡] menu. The modal dims the page and surfaces saved conversations, filterable by keyword or tag.</p>
+    <p>Conversations are persisted in chrome.storage.local, capped at 1000 with LRU eviction (FR-06 #7). Each row links to the page fingerprint (SHA-256 of normalized title + content).</p>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" role="dialog" aria-label="Conversation history">
+      <div class="modal-header">
+        <div>
+          <span class="modal-title" data-i18n-key="history.title">Conversation History</span>
+          <span class="meta font-mono">· 12 conversations</span>
+        </div>
+        <button class="icon-btn" id="modal-close" aria-label="Close" data-i18n-aria="sidepanel.context.close">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2 L12 12 M2 12 L12 2"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-search">
+        <div class="modal-search-bar">
+          <span class="modal-search-icon">⌕</span>
+          <input type="text" id="search" placeholder="Search title or content…" data-i18n-placeholder="history.search.placeholder" />
+        </div>
+      </div>
+
+      <div class="modal-tags">
+        <span class="text-mono-uppercase">Tags:</span>
+        <span class="tag active" data-tag="all">All <span class="x">·</span></span>
+        <span class="tag" data-tag="research">research <span class="x">·</span></span>
+        <span class="tag" data-tag="code">code <span class="x">·</span></span>
+        <span class="tag" data-tag="youtube">youtube <span class="x">·</span></span>
+        <span class="tag" data-tag="pdf">pdf <span class="x">·</span></span>
+        <span class="tag" data-tag="translate">translate <span class="x">·</span></span>
+      </div>
+
+      <div class="conv-list" id="conv-list"></div>
+      <div class="modal-empty" id="modal-empty" data-i18n-key="history.empty">No conversations match your search.</div>
+
+      <div class="modal-footer">
+        <div class="footer-left">Cap 1000 conversations · LRU eviction · export formats below.</div>
+        <div class="footer-actions">
+          <button class="btn btn-ghost" data-i18n-key="history.export.all.md">Export all (Markdown)</button>
+          <button class="btn btn-ghost" data-i18n-key="history.export.all.json">Export all (JSON)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar" style="position: fixed; top: 0; left: 0; right: 0; z-index: 998; opacity: 0.95;">
+    <span class="brand-mini">Side<span class="mark">Mind</span> · <span style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">Modal mockup</span></span>
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div class="seg">
+        <button data-lang-btn="en" aria-pressed="true">EN</button>
+        <button data-lang-btn="vi" aria-pressed="false">VI</button>
+      </div>
+      <div class="seg">
+        <button data-theme-btn="light" aria-pressed="true">Light</button>
+        <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+      <a class="font-mono text-xs text-muted" href="index.html" style="text-transform: uppercase; letter-spacing: 0.1em;">← Index</a>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="_shared/i18n.js"></script>
+  <script>
+    document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setTheme(btn.getAttribute('data-theme-btn'));
+        document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        SideMind.setLang(btn.getAttribute('data-lang-btn'));
+        document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      });
+    });
+    (function () {
+      const t = SideMind.getTheme();
+      document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-btn') === t)));
+      const l = SideMind.getLang();
+      document.querySelectorAll('[data-lang-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang-btn') === l)));
+    })();
+
+    // Faker data
+    const CONV = [
+      { id: 1, title: 'How attention sinks affect LLM inference', host: 'youtube.com', msgs: 14, tokens: 2341, updated: '2m ago', tags: ['youtube','research'], color: '#c8392f' },
+      { id: 2, title: 'Rust async patterns: tokio vs async-std', host: 'github.com', msgs: 22, tokens: 4012, updated: '1h ago', tags: ['code','research'], color: '#1a1a1a' },
+      { id: 3, title: 'transformer-cosmology-2310.12931.pdf', host: 'arxiv.org', msgs: 8, tokens: 1102, updated: '3h ago', tags: ['pdf','research'], color: '#b91d1d' },
+      { id: 4, title: 'Vietnamese translation: Climate report 2025', host: 'nytimes.com', msgs: 6, tokens: 982, updated: 'yesterday', tags: ['translate'], color: '#2a6f97' },
+      { id: 5, title: 'TypeScript 5.6 release notes', host: 'devblogs.microsoft.com', msgs: 18, tokens: 3020, updated: '2 days ago', tags: ['code'], color: '#3178c6' },
+      { id: 6, title: 'The Cambridge Introduction to James Joyce', host: 'cambridge.org', msgs: 5, tokens: 480, updated: '3 days ago', tags: ['research'], color: '#444' },
+      { id: 7, title: 'Cooking with kimchi: fermentation science', host: 'nytimes.com', msgs: 12, tokens: 1992, updated: '4 days ago', tags: [], color: '#a33636' },
+      { id: 8, title: 'Vite 6 RFC discussion thread', host: 'github.com', msgs: 31, tokens: 5102, updated: '5 days ago', tags: ['code','research'], color: '#1a1a1a' },
+      { id: 9, title: 'Why do we sleep? — Huberman Lab podcast', host: 'youtube.com', msgs: 9, tokens: 1450, updated: '1 week ago', tags: ['youtube'], color: '#c8392f' },
+      { id: 10, title: 'Carbon capture technologies overview', host: 'iea.org', msgs: 15, tokens: 2811, updated: '1 week ago', tags: ['research','pdf'], color: '#0e7490' },
+      { id: 11, title: 'CRDT implementation notes (yi/Diamond)', host: 'github.com', msgs: 27, tokens: 4620, updated: '2 weeks ago', tags: ['code'], color: '#1a1a1a' },
+      { id: 12, title: 'The Periodic Table — Britannica', host: 'britannica.com', msgs: 4, tokens: 360, updated: '2 weeks ago', tags: ['research'], color: '#704a30' },
+    ];
+
+    let activeTag = 'all';
+
+    function colorFromHost(host) {
+      const map = { 'youtube.com':'#c8392f', 'github.com':'#1a1a1a', 'arxiv.org':'#b91d1d', 'nytimes.com':'#2a6f97', 'devblogs.microsoft.com':'#3178c6', 'cambridge.org':'#444', 'iea.org':'#0e7490', 'britannica.com':'#704a30' };
+      return map[host] || '#6b6357';
+    }
+
+    function render(filter) {
+      const list = document.getElementById('conv-list');
+      const empty = document.getElementById('modal-empty');
+      const filtered = CONV.filter((c) => {
+        const txt = filter ? c.title.toLowerCase().includes(filter.toLowerCase()) : true;
+        const tag = activeTag === 'all' || c.tags.includes(activeTag);
+        return txt && tag;
+      });
+      if (filtered.length === 0) {
+        list.innerHTML = '';
+        empty.classList.add('show');
+        return;
+      }
+      empty.classList.remove('show');
+      list.innerHTML = filtered.map((c) => `
+        <div class="conv-row" data-id="${c.id}">
+          <div class="conv-dot" style="background: ${c.color};"></div>
+          <div>
+            <div class="conv-title">${c.title}</div>
+            <div class="conv-tags">${c.tags.map((t) => `<span class="tag" style="cursor: default;">${t}</span>`).join('')}</div>
+          </div>
+          <div class="conv-stat">
+            <div>${c.msgs}</div>
+            <div class="label" data-i18n-key="history.col.msgs">MSG</div>
+          </div>
+          <div class="conv-stat">
+            <div>${c.tokens.toLocaleString()}</div>
+            <div class="label">TOK</div>
+          </div>
+          <div class="conv-stat">
+            <div style="font-size: var(--fs-xs); font-weight: 400; color: var(--muted);">${c.updated}</div>
+            <div class="conv-actions-inline" style="margin-top: 2px;">
+              <span class="conv-action-inline" data-action="open">Open</span>
+              <span class="conv-action-inline" data-action="export">Export</span>
+              <span class="conv-action-inline" data-action="delete">Delete</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      // Re-translate
+      SideMind.applyLang(SideMind.getLang());
+      // Wire action inline clicks
+      list.querySelectorAll('[data-action]').forEach((el) => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const conv = CONV.find((c) => c.id === parseInt(el.closest('.conv-row').getAttribute('data-id')));
+          const action = el.getAttribute('data-action');
+          if (action === 'delete') {
+            if (!confirm(SideMind.t('history.confirm.delete') + '\n\n' + conv.title)) return;
+            const idx = CONV.findIndex((c) => c.id === conv.id);
+            CONV.splice(idx, 1);
+            render(document.getElementById('search').value);
+            toast('Deleted · ' + conv.title);
+          } else if (action === 'export') {
+            toast('Export → ' + conv.title);
+          } else if (action === 'open') {
+            toast('Open → ' + conv.title);
+          }
+        });
+      });
+    }
+
+    document.getElementById('search').addEventListener('input', (e) => render(e.target.value));
+    document.querySelectorAll('[data-tag]').forEach((tag) => {
+      tag.addEventListener('click', () => {
+        activeTag = tag.getAttribute('data-tag');
+        document.querySelectorAll('[data-tag]').forEach((t) => t.classList.toggle('active', t === tag));
+        render(document.getElementById('search').value);
+      });
+    });
+    document.getElementById('modal-close').addEventListener('click', () => {
+      document.getElementById('modal-backdrop').style.display = 'none';
+      document.querySelector('.bg-page').style.opacity = '1';
+    });
+    document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'modal-backdrop') {
+        e.target.style.display = 'none';
+        document.querySelector('.bg-page').style.opacity = '1';
+      }
+    });
+
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    render('');
+  </script>
+</body>
+</html>
