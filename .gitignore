@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+.output/
+.wxt/
+*.zip
+*.crx
+*.pem
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# OS
+.DS_Store
+desktop.ini
+ehthumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Cursor local
+.cursor/cache/
+.cursor/workspace.json
