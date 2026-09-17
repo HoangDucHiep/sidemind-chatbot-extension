@@ -174,8 +174,8 @@ Mapping từ **FR-xx / NFR-xx** trong [docs/SRS.md v0.3.0](../../docs/SRS.md) sa
 - [x] WCAG 2.1 AA contrast:
   - ink/paper ≈ 13:1 ✓
   - accent/paper ≈ 5.8:1 ✓ (≥ 4.5:1)
-- [x] Không dùng font Inter/Roboto/Arial cho heading; chỉ Newsreader (serif editorial).
-- [x] Không gradient tím trên white.
+- [x] Không dùng font Inter/Roboto/Arial cho heading; chỉ Newsreader (serif editorial) + Source Serif 4 fallback cho Vietnamese subset.
+- [x] Không gradient màu lạ trên paper background (vermilion làm accent duy nhất).
 - [x] Citation dùng IBM Plex Mono.
 - [ ] Playwright screenshot — optional, không ở phase mockup.
 

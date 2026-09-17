@@ -15,9 +15,9 @@
   --shadow-rgb: 26, 26, 26;
 
   /* Typography */
-  --font-heading: 'Newsreader', 'Source Serif Pro', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SF Mono', 'Courier New', monospace;
+  --font-heading: 'Newsreader', 'Source Serif 4', 'Source Serif Pro', Cambria, Georgia, 'Times New Roman', serif;
+  --font-ui: 'Inter Tight', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, 'Liberation Mono', monospace;
 
   /* Type scale */
   --fs-xs: 11px;

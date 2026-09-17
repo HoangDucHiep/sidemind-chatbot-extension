@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideMind · Coverage Matrix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="_shared/fonts.css" />
+  <link rel="stylesheet" href="_shared/tokens.css" />
+  <link rel="stylesheet" href="_shared/base.css" />
+  <link rel="stylesheet" href="_shared/components.css" />
+  <style>
+    body { padding: var(--space-8) 0; }
+    .landing-header { border-bottom: var(--border-width-3) solid var(--ink); padding-bottom: var(--space-6); margin-bottom: var(--space-6); }
+    .brand-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+    .brand { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-4xl); line-height: 1; letter-spacing: -0.03em; }
+    .brand-mark { font-family: var(--font-heading); font-style: italic; color: var(--accent); }
+    .controls { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .seg { display: flex; border: 1px solid var(--ink); }
+    .seg button { padding: var(--space-2) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); cursor: pointer; }
+    .seg button.active { background: var(--ink); color: var(--paper); }
+    .seg button + button { border-left: 1px solid var(--ink); }
+    .subtitle { font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--muted); margin-top: var(--space-3); }
+    .tagline { font-family: var(--font-heading); font-style: italic; font-size: var(--fs-lg); margin-top: var(--space-3); max-width: 720px; line-height: 1.4; }
+
+    /* Summary cards */
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-6); }
+    @media (max-width: 768px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat { padding: var(--space-4); border: 1px solid var(--rule); position: relative; }
+    .stat-label { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: var(--space-2); }
+    .stat-value { font-family: var(--font-heading); font-size: var(--fs-3xl); line-height: 1; font-weight: 600; }
+    .stat-foot { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); margin-top: var(--space-2); }
+    .stat.full .stat-value { color: var(--accent); }
+    .stat.partial .stat-value { color: var(--ink); }
+    .stat.missing .stat-value { color: var(--muted); }
+    .stat.nfr .stat-value { color: var(--ink); }
+
+    /* Progress bar */
+    .progress { height: 8px; background: var(--rule); position: relative; overflow: hidden; margin-top: var(--space-3); }
+    .progress-bar { height: 100%; background: var(--accent); transition: width var(--dur-base) var(--ease); }
+    .progress-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); }
+
+    /* Filter chips */
+    .filter-row { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-4); align-items: center; }
+    .filter-label { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-right: var(--space-2); }
+    .chip { padding: var(--space-1) var(--space-3); border: 1px solid var(--ink); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; background: transparent; color: var(--ink); cursor: pointer; transition: all var(--dur-fast) var(--ease); }
+    .chip:hover { background: var(--ink); color: var(--paper); }
+    .chip.active { background: var(--ink); color: var(--paper); }
+    .chip .count { margin-left: var(--space-2); opacity: 0.6; }
+
+    /* Heatmap table */
+    .heatmap-wrap { overflow-x: auto; border: 1px solid var(--ink); background: var(--paper); }
+    .heatmap { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); min-width: 920px; }
+    .heatmap th, .heatmap td { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 0; text-align: center; }
+    .heatmap thead th { background: var(--ink); color: var(--paper); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; padding: var(--space-3) var(--space-2); position: sticky; top: 0; z-index: 2; font-weight: 600; }
+    .heatmap thead th.fr-col { text-align: left; padding-left: var(--space-3); width: 220px; }
+    .heatmap tbody tr:hover { background: var(--accent-soft); }
+    .heatmap tbody tr.hidden { display: none; }
+    .fr-cell { text-align: left; padding: var(--space-3); font-family: var(--font-mono); font-size: var(--fs-xs); background: var(--paper); }
+    .fr-cell .fr-id { font-weight: 700; color: var(--accent); display: block; margin-bottom: var(--space-1); }
+    .fr-cell .fr-name { font-family: var(--font-ui); font-size: var(--fs-xs); color: var(--muted); display: block; line-height: 1.3; }
+
+    /* Cell content */
+    .coverage-cell { padding: var(--space-2); height: 56px; vertical-align: middle; }
+    .cov-dot { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    .cov-full { background: var(--accent); color: var(--paper); font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-xs); }
+    .cov-partial { background: transparent; color: var(--accent); border: 2px solid var(--accent); font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-xs); }
+    .cov-none { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-xs); }
+    .cov-link { display: block; width: 100%; height: 100%; text-decoration: none; color: inherit; padding: var(--space-2); }
+
+    /* FR Detail panel */
+    .detail-panel { margin-top: var(--space-8); }
+    .detail-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4); border-bottom: var(--hairline); padding-bottom: var(--space-2); }
+    .detail-title { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+
+    .fr-list { display: grid; gap: var(--space-4); }
+    .fr-item { padding: var(--space-4); border: 1px solid var(--rule); background: var(--paper); }
+    .fr-item[data-state="missing"] { border-left: 4px solid var(--muted); }
+    .fr-item[data-state="partial"] { border-left: 4px solid var(--accent); }
+    .fr-item[data-state="full"] { border-left: 4px solid var(--accent); background: linear-gradient(90deg, var(--accent-soft) 0%, var(--paper) 100%); }
+    .fr-item-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); flex-wrap: wrap; }
+    .fr-item-id { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 700; color: var(--accent); }
+    .fr-item-title { font-family: var(--font-heading); font-size: var(--fs-md); font-weight: 600; }
+    .fr-state-pill { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; padding: 2px var(--space-2); border: 1px solid currentColor; }
+    .fr-state-pill[data-state="full"] { color: var(--accent); }
+    .fr-state-pill[data-state="partial"] { color: var(--ink); }
+    .fr-state-pill[data-state="missing"] { color: var(--muted); }
+    .fr-item-body { font-family: var(--font-ui); font-size: var(--fs-sm); color: var(--ink); line-height: 1.6; }
+    .fr-item-body ul { margin: var(--space-2) 0; padding-left: var(--space-5); }
+    .fr-item-body li { margin-bottom: var(--space-1); }
+    .fr-item-body code { font-family: var(--font-mono); font-size: 0.9em; background: var(--accent-soft); padding: 1px 4px; }
+    .fr-item-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+    .fr-files { margin-top: var(--space-3); padding-top: var(--space-3); border-top: var(--hairline); display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .fr-file-link { font-family: var(--font-mono); font-size: var(--fs-xs); padding: 2px var(--space-2); border: 1px solid var(--ink); color: var(--ink); text-decoration: none; }
+    .fr-file-link:hover { background: var(--ink); color: var(--paper); }
+
+    /* NFR section */
+    .nfr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    @media (max-width: 768px) { .nfr-grid { grid-template-columns: 1fr; } }
+    .nfr-item { padding: var(--space-3); border: 1px solid var(--rule); display: flex; align-items: baseline; gap: var(--space-3); }
+    .nfr-id { font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 700; color: var(--accent); min-width: 60px; }
+    .nfr-body { font-family: var(--font-ui); font-size: var(--fs-sm); line-height: 1.5; flex: 1; }
+    .nfr-body a { color: var(--accent); text-decoration: underline; }
+
+    /* Footer */
+    .footer { margin-top: var(--space-12); padding-top: var(--space-6); border-top: var(--hairline); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); line-height: 1.7; }
+
+    /* Noise */
+    .noise-overlay {
+      position: fixed; inset: 0; pointer-events: none; opacity: 0.3; z-index: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      mix-blend-mode: multiply;
+    }
+    .content { position: relative; z-index: 1; }
+
+    /* Legend */
+    .legend { display: flex; gap: var(--space-4); align-items: center; margin-bottom: var(--space-3); flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .legend-swatch { width: 24px; height: 16px; display: inline-block; }
+    .legend-swatch.full { background: var(--accent); }
+    .legend-swatch.partial { background: transparent; border: 2px solid var(--accent); }
+    .legend-swatch.none { background: transparent; border: 1px dashed var(--muted); }
+  </style>
+</head>
+<body class="paper-grain">
+  <div class="noise-overlay"></div>
+  <main class="container content">
+    <header class="landing-header">
+      <div class="brand-row">
+        <div>
+          <h1 class="brand">Side<span class="brand-mark">Mind</span> · Coverage</h1>
+          <p class="subtitle" data-i18n-key="cov.subtitle">FR / NFR × Mockup file · Visual coverage matrix</p>
+          <p class="tagline" data-i18n-key="cov.tagline">SideMind (UDDN) — trực quan hóa ma trận phủ sóng yêu cầu. Mỗi FR phải có ít nhất 1 visualization theo plan §7. Heatmap dưới đây tóm tắt 21 yêu cầu × 11 file.</p>
+        </div>
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Language">
+            <button data-lang-btn="en" aria-pressed="true">EN</button>
+            <button data-lang-btn="vi" aria-pressed="false">VI</button>
+          </div>
+          <div class="seg" role="group" aria-label="Theme">
+            <button data-theme-btn="light" aria-pressed="true">Light</button>
+            <button data-theme-btn="dark" aria-pressed="false">Dark</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SUMMARY -->
+    <section>
+      <div class="summary-grid" id="summary-grid">
+        <div class="stat full">
+          <div class="stat-label" data-i18n-key="cov.stat.full">Fully Covered</div>
+          <div class="stat-value" id="stat-full">—</div>
+          <div class="stat-foot" data-i18n-key="cov.stat.fullFoot">FR ≥ 1 file + all ACs</div>
+        </div>
+        <div class="stat partial">
+          <div class="stat-label" data-i18n-key="cov.stat.partial">Partial</div>
+          <div class="stat-value" id="stat-partial">—</div>
+          <div class="stat-foot" data-i18n-key="cov.stat.partialFoot">Some ACs demoed</div>
+        </div>
+        <div class="stat missing">
+          <div class="stat-label" data-i18n-key="cov.stat.missing">Missing</div>
+          <div class="stat-value" id="stat-missing">—</div>
+          <div class="stat-foot" data-i18n-key="cov.stat.missingFoot">Visualization deferred</div>
+        </div>
+        <div class="stat nfr">
+          <div class="stat-label" data-i18n-key="cov.stat.nfr">NFR</div>
+          <div class="stat-value" id="stat-nfr">—</div>
+          <div class="stat-foot" data-i18n-key="cov.stat.nfrFoot">Cross-cutting concerns</div>
+        </div>
+      </div>
+
+      <div class="progress" aria-label="Overall coverage">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+      <p class="stat-foot" id="progress-label" style="margin-top: var(--space-2);">—</p>
+    </section>
+
+    <!-- HEATMAP -->
+    <section style="margin-top: var(--space-8);">
+      <div class="section-head" style="display: flex; align-items: end; justify-content: space-between; margin-bottom: var(--space-4); border-bottom: 1px solid var(--rule); padding-bottom: var(--space-2);">
+        <div style="font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);" data-i18n-key="cov.heatmap.title">Heatmap · FR × File</div>
+        <div style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted);">21 rows × 11 cols</div>
+      </div>
+
+      <div class="legend">
+        <span class="legend-item"><span class="legend-swatch full"></span><span data-i18n-key="cov.legend.full">Full coverage</span></span>
+        <span class="legend-item"><span class="legend-swatch partial"></span><span data-i18n-key="cov.legend.partial">Partial (some ACs)</span></span>
+        <span class="legend-item"><span class="legend-swatch none"></span><span data-i18n-key="cov.legend.none">Not covered</span></span>
+      </div>
+
+      <div class="filter-row">
+        <span class="filter-label" data-i18n-key="cov.filter.label">Filter:</span>
+        <button class="chip active" data-filter="all">All <span class="count" id="cnt-all">—</span></button>
+        <button class="chip" data-filter="full">Full <span class="count" id="cnt-full">—</span></button>
+        <button class="chip" data-filter="partial">Partial <span class="count" id="cnt-partial">—</span></button>
+        <button class="chip" data-filter="missing">Missing <span class="count" id="cnt-missing">—</span></button>
+        <button class="chip" data-filter="nfr">NFR <span class="count" id="cnt-nfr">—</span></button>
+      </div>
+
+      <div class="heatmap-wrap">
+        <table class="heatmap" id="heatmap" aria-label="Coverage matrix">
+          <thead>
+            <tr>
+              <th class="fr-col" data-i18n-key="cov.col.req">Requirement</th>
+              <th title="index.html">index</th>
+              <th title="01-side-panel.html">01</th>
+              <th title="02-floating-button.html">02</th>
+              <th title="03-onboarding.html">03</th>
+              <th title="04-options-api-keys.html">04</th>
+              <th title="05-options-general.html">05</th>
+              <th title="06-options-privacy.html">06</th>
+              <th title="07-options-shortcuts.html">07</th>
+              <th title="08-history-modal.html">08</th>
+              <th title="09-empty-error-states.html">09</th>
+            </tr>
+          </thead>
+          <tbody id="heatmap-body">
+            <!-- Populated by script -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FR DETAIL -->
+    <section class="detail-panel">
+      <div class="detail-head">
+        <div class="detail-title" data-i18n-key="cov.detail.title">Per-FR breakdown</div>
+        <div style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted);" data-i18n-key="cov.detail.hint">Click file chips to jump</div>
+      </div>
+
+      <div class="fr-list" id="fr-list">
+        <!-- Populated by script -->
+      </div>
+    </section>
+
+    <!-- NFR DETAIL -->
+    <section class="detail-panel">
+      <div class="detail-head">
+        <div class="detail-title" data-i18n-key="cov.nfr.title">NFR breakdown</div>
+        <div style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted);">9 NFRs</div>
+      </div>
+
+      <div class="nfr-grid" id="nfr-grid">
+        <!-- Populated by script -->
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p><strong>SideMind · Coverage Matrix</strong> · Generated from <code>00-design-coverage.md</code> v1.0</p>
+      <p><span data-i18n-key="cov.footer.note">Trạng thái "full" yêu cầu FR có ≥ 1 file mockup visualise AND tất cả Acceptance Criteria đều có ít nhất 1 dấu ✓. "Partial" = một số ACs chưa demo (ghi chú trong file .md). "Missing" = visualization deferred sang phase code.</span></p>
+      <p style="margin-top: var(--space-2);"><a href="index.html" style="color: var(--accent); text-decoration: underline;">← Back to index</a> · <a href="00-design-coverage.md" style="color: var(--accent); text-decoration: underline;" data-i18n-key="cov.footer.markdown">Markdown source</a></p>
+    </footer>
+  </main>
+
+  <script src="_shared/i18n.js"></script>
+  <script src="_shared/coverage-data.js"></script>
+  <script>
+    /* Render heatmap rows + FR detail + NFR detail.
+     * Data lives in _shared/coverage-data.js so this file stays markup-light.
+     */
+    (function () {
+      const FILES = ['index', '01', '02', '03', '04', '05', '06', '07', '08', '09'];
+      const FILE_LINKS = {
+        index: 'index.html',
+        '01': '01-side-panel.html',
+        '02': '02-floating-button.html',
+        '03': '03-onboarding.html',
+        '04': '04-options-api-keys.html',
+        '05': '05-options-general.html',
+        '06': '06-options-privacy.html',
+        '07': '07-options-shortcuts.html',
+        '08': '08-history-modal.html',
+        '09': '09-empty-error-states.html'
+      };
+
+      function dot(state) {
+        if (state === 'full') return '<span class="cov-full" aria-label="full">✓</span>';
+        if (state === 'partial') return '<span class="cov-partial" aria-label="partial">◐</span>';
+        return '<span class="cov-none" aria-label="none">·</span>';
+      }
+
+      function buildHeatmap() {
+        const body = document.getElementById('heatmap-body');
+        const rows = [];
+
+        COVERAGE_DATA.frs.forEach(function (fr) {
+          const row = document.createElement('tr');
+          row.dataset.state = fr.state;
+          row.dataset.kind = 'fr';
+
+          let cells = '<td class="fr-cell"><span class="fr-id">' + fr.id + '</span><span class="fr-name">' + fr.name + '</span></td>';
+          FILES.forEach(function (f) {
+            const v = fr.cells[f] || 'none';
+            const link = FILE_LINKS[f];
+            const cls = v === 'full' ? 'cov-full' : v === 'partial' ? 'cov-partial' : 'cov-none';
+            const sym = v === 'full' ? '✓' : v === 'partial' ? '◐' : '·';
+            cells += '<td class="coverage-cell"><a class="cov-link ' + cls + '" href="' + link + '" title="' + fr.id + ' × ' + f + '">' + sym + '</a></td>';
+          });
+          row.innerHTML = cells;
+          body.appendChild(row);
+        });
+
+        COVERAGE_DATA.nfrs.forEach(function (nfr) {
+          const row = document.createElement('tr');
+          row.dataset.state = 'nfr';
+          row.dataset.kind = 'nfr';
+
+          let cells = '<td class="fr-cell"><span class="fr-id">' + nfr.id + '</span><span class="fr-name">' + nfr.name + '</span></td>';
+          FILES.forEach(function (f) {
+            const v = nfr.cells[f] || 'none';
+            const link = FILE_LINKS[f];
+            const cls = v === 'full' ? 'cov-full' : v === 'partial' ? 'cov-partial' : 'cov-none';
+            const sym = v === 'full' ? '✓' : v === 'partial' ? '◐' : '·';
+            cells += '<td class="coverage-cell"><a class="cov-link ' + cls + '" href="' + link + '" title="' + nfr.id + ' × ' + f + '">' + sym + '</a></td>';
+          });
+          row.innerHTML = cells;
+          body.appendChild(row);
+        });
+      }
+
+      function buildDetail() {
+        const list = document.getElementById('fr-list');
+        COVERAGE_DATA.frs.forEach(function (fr) {
+          const item = document.createElement('article');
+          item.className = 'fr-item';
+          item.dataset.state = fr.state;
+          item.dataset.kind = 'fr';
+
+          const fileLinks = (fr.files || []).map(function (f) {
+            return '<a class="fr-file-link" href="' + FILE_LINKS[f] + '">' + f + '</a>';
+          }).join('');
+
+          item.innerHTML =
+            '<div class="fr-item-head">' +
+              '<div><span class="fr-item-id">' + fr.id + '</span> · <span class="fr-item-title">' + fr.title + '</span></div>' +
+              '<span class="fr-state-pill" data-state="' + fr.state + '">' + fr.state + '</span>' +
+            '</div>' +
+            '<div class="fr-item-body">' + fr.detail + '</div>' +
+            (fileLinks ? '<div class="fr-files">' + fileLinks + '</div>' : '');
+
+          list.appendChild(item);
+        });
+
+        const grid = document.getElementById('nfr-grid');
+        COVERAGE_DATA.nfrs.forEach(function (nfr) {
+          const item = document.createElement('div');
+          item.className = 'nfr-item';
+          item.dataset.state = 'nfr';
+          item.dataset.kind = 'nfr';
+          item.innerHTML =
+            '<div class="nfr-id">' + nfr.id + '</div>' +
+            '<div class="nfr-body">' + nfr.detail + '</div>';
+          grid.appendChild(item);
+        });
+      }
+
+      function computeStats() {
+        const frs = COVERAGE_DATA.frs;
+        let full = 0, partial = 0, missing = 0;
+        frs.forEach(function (f) {
+          if (f.state === 'full') full++;
+          else if (f.state === 'partial') partial++;
+          else missing++;
+        });
+        document.getElementById('stat-full').textContent = full + '/' + frs.length;
+        document.getElementById('stat-partial').textContent = partial;
+        document.getElementById('stat-missing').textContent = missing;
+        document.getElementById('stat-nfr').textContent = COVERAGE_DATA.nfrs.length;
+
+        const total = frs.length;
+        const covered = full + partial * 0.5;
+        const pct = Math.round((covered / total) * 100);
+        document.getElementById('progress-fill').style.width = pct + '%';
+        document.getElementById('progress-label').textContent = 'Overall coverage: ' + pct + '% (' + covered.toFixed(1) + ' / ' + total + ' weighted)';
+
+        document.getElementById('cnt-all').textContent = frs.length + COVERAGE_DATA.nfrs.length;
+        document.getElementById('cnt-full').textContent = full;
+        document.getElementById('cnt-partial').textContent = partial;
+        document.getElementById('cnt-missing').textContent = missing;
+        document.getElementById('cnt-nfr').textContent = COVERAGE_DATA.nfrs.length;
+      }
+
+      function bindFilters() {
+        document.querySelectorAll('[data-filter]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            document.querySelectorAll('[data-filter]').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            const filter = btn.dataset.filter;
+            document.querySelectorAll('#heatmap-body tr').forEach(function (row) {
+              if (filter === 'all') row.classList.remove('hidden');
+              else if (filter === 'nfr') row.classList.toggle('hidden', row.dataset.kind !== 'nfr');
+              else row.classList.toggle('hidden', row.dataset.state !== filter);
+            });
+            document.querySelectorAll('.fr-item').forEach(function (item) {
+              if (filter === 'all') item.style.display = '';
+              else if (filter === 'nfr') item.style.display = 'none';
+              else item.style.display = item.dataset.state === filter ? '' : 'none';
+            });
+            document.querySelectorAll('.nfr-item').forEach(function (item) {
+              if (filter === 'all' || filter === 'nfr') item.style.display = '';
+              else item.style.display = 'none';
+            });
+          });
+        });
+      }
+
+      buildHeatmap();
+      buildDetail();
+      computeStats();
+      bindFilters();
+
+      // Theme + lang wiring (i18n.js auto-inits on DOMContentLoaded, but we
+      // also wire the seg buttons explicitly so click works after the page
+      // has been rendered.)
+      document.querySelectorAll('[data-lang-btn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const lang = btn.dataset.langBtn;
+          if (window.SideMind) window.SideMind.setLang(lang);
+          document.querySelectorAll('[data-lang-btn]').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.langBtn === lang);
+            b.setAttribute('aria-pressed', b.dataset.langBtn === lang ? 'true' : 'false');
+          });
+        });
+      });
+      document.querySelectorAll('[data-theme-btn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const theme = btn.dataset.themeBtn;
+          if (window.SideMind) window.SideMind.setTheme(theme);
+          document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.themeBtn === theme);
+            b.setAttribute('aria-pressed', b.dataset.themeBtn === theme ? 'true' : 'false');
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

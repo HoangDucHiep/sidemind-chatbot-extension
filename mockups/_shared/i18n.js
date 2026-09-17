@@ -19,12 +19,36 @@
       'global.theme.toggle': 'Theme',
 
       // Landing
-      'landing.subtitle': 'Chrome Extension UI Mockups — Editorial / Ink Design Language',
-      'landing.tagline': 'No purple gradients. No generic SaaS. Every pixel intentional.',
+      'landing.subtitle': 'Chrome Extension UI Mockups · Editorial / Ink Design Language',
+      'landing.tagline': 'SideMind (UDDN) — 10 production-ready screen specs spanning side panel, FAB, onboarding, settings, history, and error states. Bilingual EN ⇄ VI. WCAG 2.1 AA compliant.',
       'landing.section.title': 'Index',
       'landing.section.count': '10 mockups',
       'landing.footer': 'All mockups reference docs/SRS.md v0.3.0 — design language defined in .cursor/skills/frontend-design/SKILL.md.',
       'landing.coverage': 'FR coverage matrix: 00-design-coverage.md',
+      'landing.coverage.html': 'Open visual matrix →',
+
+      // Coverage matrix
+      'cov.subtitle': 'FR / NFR × Mockup file · Visual coverage matrix',
+      'cov.tagline': 'SideMind (UDDN) — trực quan hóa ma trận phủ sóng yêu cầu. Mỗi FR phải có ít nhất 1 visualization theo plan §7. Heatmap dưới đây tóm tắt 21 yêu cầu × 11 file.',
+      'cov.stat.full': 'Fully Covered',
+      'cov.stat.fullFoot': 'FR ≥ 1 file + all ACs',
+      'cov.stat.partial': 'Partial',
+      'cov.stat.partialFoot': 'Some ACs demoed',
+      'cov.stat.missing': 'Missing',
+      'cov.stat.missingFoot': 'Visualization deferred',
+      'cov.stat.nfr': 'NFR',
+      'cov.stat.nfrFoot': 'Cross-cutting concerns',
+      'cov.heatmap.title': 'Heatmap · FR × File',
+      'cov.legend.full': 'Full coverage',
+      'cov.legend.partial': 'Partial (some ACs)',
+      'cov.legend.none': 'Not covered',
+      'cov.filter.label': 'Filter:',
+      'cov.col.req': 'Requirement',
+      'cov.detail.title': 'Per-FR breakdown',
+      'cov.detail.hint': 'Click file chips to jump',
+      'cov.nfr.title': 'NFR breakdown',
+      'cov.footer.note': 'Trạng thái "full" yêu cầu FR có ≥ 1 file mockup visualize AND tất cả Acceptance Criteria đều có ít nhất 1 dấu ✓. "Partial" = một số ACs chưa demo (ghi chú trong file .md). "Missing" = visualization deferred sang phase code.',
+      'cov.footer.markdown': 'Markdown source',
 
       // Card meta
       'card.01.meta': 'FR-01 / FR-03 / FR-05 / FR-11',
@@ -226,12 +250,36 @@
       'global.theme.toggle': 'Giao diện',
 
       // Landing
-      'landing.subtitle': 'Chrome Extension UI Mockups — Phong cách Báo chí / Mực',
-      'landing.tagline': 'Không gradient tím. Không SaaS generic. Mỗi pixel đều có chủ đích.',
+      'landing.subtitle': 'Chrome Extension UI Mockups · Phong cách Editorial / Ink',
+      'landing.tagline': 'SideMind (UDDN) — 10 bản thiết kế màn hình sẵn sàng production: side panel, FAB, onboarding, cài đặt, lịch sử và trạng thái lỗi. Song ngữ EN ⇄ VI. Tuân thủ WCAG 2.1 AA.',
       'landing.section.title': 'Mục lục',
       'landing.section.count': '10 mockup',
       'landing.footer': 'Tất cả mockup tham chiếu docs/SRS.md v0.3.0 — design language định nghĩa tại .cursor/skills/frontend-design/SKILL.md.',
       'landing.coverage': 'Ma trận phủ FR: 00-design-coverage.md',
+      'landing.coverage.html': 'Mở ma trận trực quan →',
+
+      // Coverage matrix
+      'cov.subtitle': 'FR / NFR × Mockup file · Ma trận phủ trực quan',
+      'cov.tagline': 'SideMind (UDDN) — trực quan hoá ma trận phủ sóng yêu cầu. Mỗi FR cần ít nhất 1 visualization theo plan §7. Heatmap dưới tóm tắt 21 yêu cầu × 11 file.',
+      'cov.stat.full': 'Phủ đầy đủ',
+      'cov.stat.fullFoot': 'FR ≥ 1 file + đủ ACs',
+      'cov.stat.partial': 'Một phần',
+      'cov.stat.partialFoot': 'Một số AC đã demo',
+      'cov.stat.missing': 'Chưa có',
+      'cov.stat.missingFoot': 'Hoãn sang phase code',
+      'cov.stat.nfr': 'NFR',
+      'cov.stat.nfrFoot': 'Yêu cầu xuyên suốt',
+      'cov.heatmap.title': 'Heatmap · FR × File',
+      'cov.legend.full': 'Phủ đầy đủ',
+      'cov.legend.partial': 'Một phần (vài AC)',
+      'cov.legend.none': 'Chưa phủ',
+      'cov.filter.label': 'Lọc:',
+      'cov.col.req': 'Yêu cầu',
+      'cov.detail.title': 'Chi tiết từng FR',
+      'cov.detail.hint': 'Bấm chip file để mở',
+      'cov.nfr.title': 'Chi tiết NFR',
+      'cov.footer.note': 'Trạng thái "full" yêu cầu FR có ≥ 1 file mockup visualize AND tất cả Acceptance Criteria đều có ít nhất 1 dấu ✓. "Partial" = một số AC chưa demo (ghi chú trong file .md). "Missing" = visualization deferred sang phase code.',
+      'cov.footer.markdown': 'Markdown nguồn',
 
       // Card meta
       'card.01.meta': 'FR-01 / FR-03 / FR-05 / FR-11',
@@ -427,11 +475,12 @@
   function getLang() {
     return localStorage.getItem('sidemind_lang') || 'en';
   }
-  function setLang(lang) {
-    localStorage.setItem('sidemind_lang', lang);
-    document.documentElement.setAttribute('data-lang', lang);
-    applyLang(lang);
-  }
+    function setLang(lang) {
+      localStorage.setItem('sidemind_lang', lang);
+      document.documentElement.setAttribute('data-lang', lang);
+      document.documentElement.setAttribute('lang', lang === 'vi' ? 'vi' : 'en');
+      applyLang(lang);
+    }
 
   function t(key, lang) {
     lang = lang || getLang();

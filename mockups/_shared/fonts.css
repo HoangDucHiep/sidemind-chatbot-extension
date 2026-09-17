@@ -1,0 +1,42 @@
+/* SideMind · Font loader
+ * Newsreader: serif heading (EN/VI subset)
+ * Source Serif 4: serif fallback that has a proper Vietnamese subset
+ * Inter Tight: sans UI body
+ * IBM Plex Mono: code / ID / mono labels
+ *
+ * Vietnamese characters (ă â đ ê ô ơ ư ẵ ẳ ắ ằ ẻ ẽ ẹ ế ể ễ ọ ỏ ố ộ ớ ờ ở ỡ ụ ủ ứ ừ ử ữ ỳ ỷ ỹ ỵ)
+ * require fonts with the Vietnamese subset. Newsreader in particular does NOT
+ * cover Vietnamese diacritics, so Source Serif 4 acts as a fallback for any
+ * Vietnamese character that Newsreader cannot render.
+ *
+ * When the page lang = VI, we lean harder on Source Serif 4 by setting a
+ * language-specific CSS variable override (done in this file via :lang(vi)).
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+/* When UI is in Vietnamese, prefer Source Serif 4 as the heading serif.
+ * Newsreader will still cover Latin characters and look "editorial"; Vietnamese
+ * diacritics get Source Serif 4's proper subset. The font stack in tokens.css
+ * already puts Source Serif 4 second, but this rule nudges it further forward
+ * when :lang(vi) is on the html element. */
+html[lang="vi"],
+html[data-lang="vi"] {
+  --font-heading: 'Source Serif 4', 'Newsreader', Cambria, Georgia, serif;
+}
+
+/* For inline Vietnamese text inside otherwise-English serif blocks, we still
+ * want Source Serif 4 to win on a per-character basis. font-variant fallback
+ * requires unicode-range mapping which we declare per-font. Newsreader uses
+ * only Latin range, so any Vietnamese character will fall through to Source
+ * Serif 4 automatically — no extra @font-face declarations needed.
+ *
+ * Defense in depth: ensure body and heading inherit the heading font so any
+ * unstyled Vietnamese copy still renders with proper subset support. */
+body,
+.font-heading,
+.text-headline,
+.text-title,
+.text-hero {
+  font-family: var(--font-heading);
+}
