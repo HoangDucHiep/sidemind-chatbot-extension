@@ -6,6 +6,7 @@
 //   - Permissions tối thiểu (justify từng cái theo SRS Phụ lục B)
 
 import { defineConfig } from 'wxt';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   // srcDir tùy biến — mặc định của WXT là ./, ta dùng ./src
@@ -87,15 +88,13 @@ export default defineConfig({
     },
   },
 
-  // Vite config — alias @/* → src/*
+  // Vite config — plugins + alias @/* → src/*
   vite: () => ({
+    plugins: [react()],
     resolve: {
       alias: {
         '@': '/src',
       },
     },
   }),
-
-  // Modules — modules được import trong entrypoints
-  modules: ['@wxt-dev/module-react'],
 });
