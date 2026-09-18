@@ -6,20 +6,33 @@ export default defineBackground(() => {
     ?.setPanelBehavior?.({ openPanelOnActionClick: true })
     .catch((err) => console.warn('[SideMind] Failed to set side panel behavior:', err));
 
+  // Fallback action click handler
+  chrome.action?.onClicked?.addListener((tab) => {
+    if (tab.id) {
+      chrome.sidePanel.open({ tabId: tab.id }).catch(console.error);
+    }
+  });
+
   // Listen for runtime messages
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'OPEN_SIDE_PANEL') {
-      if (sender.tab?.windowId) {
+      const target = sender.tab?.id
+        ? { tabId: sender.tab.id }
+        : sender.tab?.windowId
+          ? { windowId: sender.tab.windowId }
+          : null;
+
+      if (target) {
         chrome.sidePanel
-          .open({ windowId: sender.tab.windowId })
+          .open(target)
           .then(() => sendResponse({ success: true }))
           .catch((err) => {
             console.error('[SideMind] Error opening side panel:', err);
             sendResponse({ success: false, error: String(err) });
           });
-        return true; // Keep channel open for async response
+        return true;
       }
-      sendResponse({ success: false, error: 'No tab windowId' });
+      sendResponse({ success: false, error: 'No tab id or windowId found' });
       return false;
     }
 

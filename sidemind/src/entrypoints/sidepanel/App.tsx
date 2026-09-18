@@ -1,35 +1,76 @@
-import React, { useState, useEffect } from 'react';
+// SideMind · Main Side Panel Application
+
+import React, { useEffect, useRef } from 'react';
 import { useTheme } from '../../lib/theme';
 import { useI18n } from '../../lib/i18n';
 import { Seg } from '../../components/ui/Seg';
 import { IconButton } from '../../components/ui/IconButton';
+import { ChatInput } from '../../components/chat/ChatInput';
+import { MessageItem } from '../../components/chat/MessageItem';
+import { useChatStore } from '../../store/useChat';
+import { useContextStore } from '../../store/useContext';
+import { type AiProvider } from '../../lib/ai';
+import { SLASH_COMMANDS } from '../../lib/context/prompts';
 
 export const App: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useI18n();
-  const [activeTabTitle, setActiveTabTitle] = useState<string>('Current Webpage');
-  const [activeTabUrl, setActiveTabUrl] = useState<string>('');
-  const [inputVal, setInputVal] = useState<string>('');
 
-  // Fetch current active tab info
+  const {
+    messages,
+    isStreaming,
+    activeProvider,
+    setProvider,
+    sendMessage,
+    clearChat,
+  } = useChatStore();
+
+  const {
+    title: pageTitle,
+    url: pageUrl,
+    context,
+    isLoading: isContextLoading,
+    refreshContext,
+  } = useContextStore();
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-fetch context on mount
   useEffect(() => {
-    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
-      chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-        if (tab) {
-          setActiveTabTitle(tab.title || 'Untitled Page');
-          setActiveTabUrl(tab.url || '');
-        }
-      });
+    refreshContext();
+
+    // Listen to tab changes
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      const handleTabActivated = () => refreshContext();
+      const handleTabUpdated = (_tabId: number, changeInfo: { status?: string }) => {
+        if (changeInfo.status === 'complete') refreshContext();
+      };
+
+      chrome.tabs.onActivated?.addListener(handleTabActivated);
+      chrome.tabs.onUpdated?.addListener(handleTabUpdated);
+
+      return () => {
+        chrome.tabs.onActivated?.removeListener(handleTabActivated);
+        chrome.tabs.onUpdated?.removeListener(handleTabUpdated);
+      };
     }
-  }, []);
+    return undefined;
+  }, [refreshContext]);
+
+  // Scroll to bottom on new messages or stream chunks
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isStreaming]);
 
   const openOptions = () => {
     if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
       chrome.runtime.openOptionsPage();
     } else {
-      alert('Options page (will open settings in Phase 3)');
+      alert('Options page (Configure API keys in Phase 3)');
     }
   };
+
+  const pageTypeBadge = context?.pageType ? context.pageType.toUpperCase() : 'PAGE';
 
   return (
     <div className="panel">
@@ -39,9 +80,41 @@ export const App: React.FC = () => {
           <span className="font-heading" style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.02em' }}>
             Side<span style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Mind</span>
           </span>
+
+          {/* Provider Selector */}
+          <select
+            value={activeProvider}
+            onChange={(e) => setProvider(e.target.value as AiProvider)}
+            style={{
+              padding: '2px 4px',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              background: 'var(--paper)',
+              color: 'var(--ink)',
+              border: '1px solid var(--rule)',
+              borderRadius: 0,
+              cursor: 'pointer',
+              outline: 'none',
+            }}
+            title="Choose AI Provider"
+          >
+            <option value="gemini">Gemini</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Claude</option>
+          </select>
         </div>
 
         <div className="row gap-1" style={{ flexShrink: 0 }}>
+          {/* New Chat Button */}
+          {messages.length > 0 && (
+            <IconButton title={t('sidepanel.action.newChat')} onClick={clearChat}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </IconButton>
+          )}
+
+          {/* Language Seg */}
           <Seg<'en' | 'vi'>
             options={[
               { value: 'en', label: 'EN' },
@@ -58,7 +131,6 @@ export const App: React.FC = () => {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
             {theme === 'dark' ? (
-              // Sun icon for switching to light
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2" />
@@ -71,7 +143,6 @@ export const App: React.FC = () => {
                 <path d="M19.07 4.93l-1.41 1.41" />
               </svg>
             ) : (
-              // Moon icon for switching to dark
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
               </svg>
@@ -91,7 +162,7 @@ export const App: React.FC = () => {
       {/* Context bar */}
       <div
         style={{
-          padding: '8px 16px',
+          padding: '6px 12px',
           borderBottom: 'var(--hairline)',
           background: 'var(--paper)',
           fontSize: 'var(--fs-xs)',
@@ -99,6 +170,7 @@ export const App: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '8px',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
@@ -111,109 +183,93 @@ export const App: React.FC = () => {
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '220px',
+              maxWidth: '180px',
             }}
-            title={activeTabUrl}
+            title={pageUrl}
           >
-            {activeTabTitle}
+            {isContextLoading ? 'Extracting page…' : pageTitle}
           </span>
         </div>
-        <span className="badge badge-muted" style={{ fontSize: '10px' }}>
-          PAGE
-        </span>
+
+        <div className="row gap-1" style={{ flexShrink: 0 }}>
+          <span className="badge badge-muted" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            {pageTypeBadge}
+          </span>
+          <IconButton
+            title={t('sidepanel.context.refresh')}
+            onClick={() => refreshContext()}
+            style={{ width: '22px', height: '22px' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '12px', height: '12px' }}>
+              <path d="M23 4v6h-6M1 20v-6h6" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </IconButton>
+        </div>
       </div>
 
-      {/* Message stream / Empty State */}
+      {/* Message stream / Empty State Body */}
       <div className="panel-body">
-        <div
-          style={{
-            margin: 'auto 0',
-            textAlign: 'center',
-            padding: '24px 8px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
+        {messages.length === 0 ? (
           <div
             style={{
-              fontFamily: 'var(--font-heading)',
-              fontSize: '28px',
-              fontStyle: 'italic',
-              color: 'var(--ink)',
+              margin: 'auto 0',
+              textAlign: 'center',
+              padding: '24px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
             }}
           >
-            SideMind
-          </div>
-          <h2 className="text-headline" style={{ fontSize: '18px' }}>
-            {t('sidepanel.empty.hero')}
-          </h2>
-          <p className="text-sm text-muted" style={{ maxWidth: '280px' }}>
-            {t('sidepanel.empty.sub')}
-          </p>
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '28px',
+                fontStyle: 'italic',
+                color: 'var(--ink)',
+              }}
+            >
+              SideMind
+            </div>
+            <h2 className="text-headline" style={{ fontSize: '18px' }}>
+              {t('sidepanel.empty.hero')}
+            </h2>
+            <p className="text-sm text-muted" style={{ maxWidth: '280px' }}>
+              {t('sidepanel.empty.sub')}
+            </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
-            {['/summary', '/explain', '/translate', '/tldr'].map((cmd) => (
-              <button
-                key={cmd}
-                type="button"
-                className="chip"
-                style={{ cursor: 'pointer' }}
-                onClick={() => setInputVal(cmd + ' ')}
-              >
-                {cmd}
-              </button>
-            ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
+              {(['/summary', '/explain', '/translate', '/tldr'] as const).map((cmd) => (
+                <button
+                  key={cmd}
+                  type="button"
+                  className="chip"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => sendMessage(SLASH_COMMANDS[cmd].prompt)}
+                >
+                  {cmd}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="stack gap-3">
+            {messages.map((msg, idx) => (
+              <MessageItem
+                key={msg.id}
+                message={msg}
+                isStreaming={isStreaming && idx === messages.length - 1 && msg.role === 'assistant'}
+              />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </div>
 
       {/* Chat input footer */}
       <footer className="panel-footer" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-        <div style={{ position: 'relative' }}>
-          <textarea
-            className="input"
-            rows={2}
-            style={{ resize: 'none', paddingRight: '40px' }}
-            placeholder={t('sidepanel.input.placeholder')}
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (inputVal.trim()) {
-                  alert(`Message sent: "${inputVal}" (AI connection will be wired in Phase 2)`);
-                  setInputVal('');
-                }
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="btn btn-filled"
-            style={{
-              position: 'absolute',
-              right: '6px',
-              bottom: '6px',
-              padding: '4px 8px',
-              fontSize: '12px',
-            }}
-            onClick={() => {
-              if (inputVal.trim()) {
-                alert(`Message sent: "${inputVal}" (AI connection will be wired in Phase 2)`);
-                setInputVal('');
-              }
-            }}
-          >
-            ↗
-          </button>
-        </div>
-
-        <div className="row between" style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
-          <span style={{ fontFamily: 'var(--font-mono)' }}>{t('sidepanel.input.slashHint')}</span>
-          <span style={{ fontFamily: 'var(--font-mono)' }}>Ctrl+Shift+Y</span>
-        </div>
+        <ChatInput />
       </footer>
     </div>
   );

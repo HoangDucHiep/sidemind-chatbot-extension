@@ -160,12 +160,92 @@ export default defineContentScript({
         e.stopPropagation();
         return;
       }
-      // Send message to open side panel
       try {
-        chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' });
-      } catch (err) {
-        console.warn('[SideMind] Error sending OPEN_SIDE_PANEL message:', err);
+        if (!chrome.runtime?.id) {
+          alert('Extension vừa được cập nhật. Vui lòng F5 (tải lại) trang web này để sử dụng.');
+          return;
+        }
+        chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('[SideMind] Message error:', chrome.runtime.lastError.message);
+          }
+        });
+      } catch {
+        alert('Extension vừa được cập nhật. Vui lòng F5 (tải lại) trang web này để sử dụng.');
       }
     });
+
+    // Listen for messages from Side Panel
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      // 1. Return live page content to Side Panel
+      if (message.type === 'GET_PAGE_CONTENT') {
+        sendResponse({
+          title: document.title,
+          url: window.location.href,
+          html: document.documentElement.outerHTML,
+          bodyText: document.body?.innerText || '',
+        });
+        return true;
+      }
+
+      // 2. Highlight text on page
+      if (message.type === 'HIGHLIGHT_TEXT') {
+        const searchText = (message.text || '').trim();
+        if (searchText) {
+          highlightTextOnPage(searchText);
+        }
+        sendResponse({ success: true });
+        return true;
+      }
+
+      return false;
+    });
+
+    function highlightTextOnPage(rawQuery: string) {
+      // Clean query - take first 60 chars for matching
+      const query = rawQuery.replace(/\s+/g, ' ').trim().slice(0, 60);
+      if (!query) return;
+
+      // Remove existing highlight
+      document.querySelectorAll('.sidemind-highlight-anchor').forEach((el) => {
+        el.classList.remove('sidemind-highlight-anchor');
+      });
+
+      // Tree walker to find text node
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      let matchedNode: Node | null = null;
+
+      while ((node = walker.nextNode())) {
+        if (
+          node.nodeValue &&
+          node.parentElement &&
+          !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(node.parentElement.tagName)
+        ) {
+          if (node.nodeValue.includes(query) || query.includes(node.nodeValue.trim().slice(0, 30))) {
+            matchedNode = node;
+            break;
+          }
+        }
+      }
+
+      if (matchedNode && matchedNode.parentElement) {
+        const parent = matchedNode.parentElement;
+        parent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Add highlight class
+        parent.style.transition = 'background-color 400ms ease, outline 400ms ease';
+        const originalBg = parent.style.backgroundColor;
+        const originalOutline = parent.style.outline;
+
+        parent.style.backgroundColor = '#fde047';
+        parent.style.outline = '2px solid #c8392f';
+
+        setTimeout(() => {
+          parent.style.backgroundColor = originalBg;
+          parent.style.outline = originalOutline;
+        }, 2400);
+      }
+    }
   },
 });
