@@ -29,6 +29,15 @@ export const ApiKeyRow: React.FC<ApiKeyRowProps> = ({
   const [statusMessage, setStatusMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  const [isFocused, setIsFocused] = useState(false);
+
+  const maskApiKey = (key: string): string => {
+    if (!key) return '';
+    if (key.length <= 4) return '••••';
+    const last3 = key.slice(-3);
+    return '••••••••••••••••...' + last3;
+  };
+
   useEffect(() => {
     getDecryptedApiKey(provider).then((key) => {
       if (key) {
@@ -131,27 +140,38 @@ export const ApiKeyRow: React.FC<ApiKeyRowProps> = ({
       <div className="row gap-2" style={{ marginBottom: '8px' }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <input
-            type={showKey ? 'text' : 'password'}
+            type={showKey ? 'text' : isFocused ? 'password' : 'text'}
             className="input input-mono"
             placeholder={placeholder}
-            value={apiKey}
+            value={showKey || isFocused ? apiKey : maskApiKey(apiKey)}
             onChange={(e) => setApiKey(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            style={{ paddingRight: '74px' }}
+            autoComplete="off"
+            spellCheck={false}
           />
           <button
             type="button"
-            className="btn-ghost"
             style={{
               position: 'absolute',
-              right: '8px',
+              right: '6px',
               top: '50%',
               transform: 'translateY(-50%)',
-              fontSize: '11px',
-              padding: '2px 6px',
+              fontSize: '10px',
+              fontWeight: 600,
+              padding: '3px 8px',
               fontFamily: 'var(--font-mono)',
+              background: 'var(--paper)',
+              color: 'var(--ink)',
+              border: '1px solid var(--rule)',
+              cursor: 'pointer',
+              zIndex: 2,
+              userSelect: 'none',
             }}
             onClick={() => setShowKey(!showKey)}
           >
-            {showKey ? 'HIDE' : 'SHOW'}
+            {showKey ? t('keys.btn.hide', 'HIDE') : t('keys.btn.show', 'SHOW')}
           </button>
         </div>
 

@@ -79,6 +79,8 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'keys.btn.test': 'Test',
     'keys.btn.save': 'Save',
     'keys.btn.delete': 'Delete',
+    'keys.btn.show': 'SHOW',
+    'keys.btn.hide': 'HIDE',
     'keys.callout.title': 'Encryption Guarantee',
     'keys.callout.body': 'All keys are encrypted with AES-GCM-256 with device-derived salt before saving to storage.',
 
@@ -204,6 +206,8 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'keys.btn.test': 'Kiểm tra',
     'keys.btn.save': 'Lưu',
     'keys.btn.delete': 'Xoá',
+    'keys.btn.show': 'HIỆN',
+    'keys.btn.hide': 'ẨN',
     'keys.callout.title': 'Cam kết bảo mật',
     'keys.callout.body': 'Mọi khoá API đều được mã hoá bằng AES-GCM-256 với salt sinh từ thiết bị trước khi lưu.',
 
