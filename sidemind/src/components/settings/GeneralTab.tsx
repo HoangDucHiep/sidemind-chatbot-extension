@@ -12,7 +12,7 @@ export const GeneralTab: React.FC = () => {
   const { lang, setLang, t } = useI18n();
 
   const [provider, setProviderState] = useState<AiProvider>('gemini');
-  const [model, setModelState] = useState('gemini-1.5-flash');
+  const [model, setModelState] = useState('gemini-3.6-flash');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(2048);
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');

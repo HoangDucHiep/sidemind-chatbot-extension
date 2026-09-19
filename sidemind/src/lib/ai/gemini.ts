@@ -14,10 +14,14 @@ export class GeminiAdapter implements AiAdapter {
       throw new Error('MISSING_API_KEY: Google Gemini API key is not configured.');
     }
 
-    const modelName = config.model || 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      modelName
-    )}:streamGenerateContent?alt=sse&key=${encodeURIComponent(config.apiKey.trim())}`;
+    const rawModel = config.model || 'gemini-3.6-flash';
+    const modelName = rawModel.replace(/^models\//, '');
+    const apiKey = config.apiKey.trim();
+
+    const buildUrl = (m: string) =>
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+        m
+      )}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
 
     // Separate system instruction
     const systemMessages = messages.filter((m) => m.role === 'system');
@@ -40,21 +44,34 @@ export class GeminiAdapter implements AiAdapter {
       contents.push({ role: 'user', parts: [{ text: 'Hello' }] });
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const payload = JSON.stringify({
+      contents,
+      systemInstruction,
+      generationConfig: {
+        temperature: config.temperature ?? 0.7,
+        maxOutputTokens: config.maxTokens ?? 2048,
       },
-      body: JSON.stringify({
-        contents,
-        systemInstruction,
-        generationConfig: {
-          temperature: config.temperature ?? 0.7,
-          maxOutputTokens: config.maxTokens ?? 2048,
-        },
-      }),
+    });
+
+    let response = await fetch(buildUrl(modelName), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
       signal,
     });
+
+    // If model is not found or deprecated and wasn't already gemini-3.6-flash, fallback to gemini-3.6-flash
+    if (!response.ok && (response.status === 404 || response.status === 400) && modelName !== 'gemini-3.6-flash') {
+      const fallbackRes = await fetch(buildUrl('gemini-3.6-flash'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        signal,
+      });
+      if (fallbackRes.ok) {
+        response = fallbackRes;
+      }
+    }
 
     if (!response.ok) {
       const errText = await response.text();

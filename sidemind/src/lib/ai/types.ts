@@ -26,7 +26,7 @@ export interface AiAdapter {
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-20241022',
-  gemini: 'gemini-1.5-flash',
+  gemini: 'gemini-3.6-flash',
 };
 
 export const AVAILABLE_MODELS: Record<AiProvider, Array<{ id: string; label: string }>> = {
@@ -39,7 +39,10 @@ export const AVAILABLE_MODELS: Record<AiProvider, Array<{ id: string; label: str
     { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Best Reasoning)' },
   ],
   gemini: [
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Generous Free Tier)' },
-    { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Large Context Window)' },
+    { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (Latest & Recommended)' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+    { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
   ],
 };
