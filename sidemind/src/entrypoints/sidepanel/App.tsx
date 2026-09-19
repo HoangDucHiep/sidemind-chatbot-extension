@@ -1,20 +1,24 @@
-// SideMind · Main Side Panel Application
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../lib/theme';
 import { useI18n } from '../../lib/i18n';
 import { Seg } from '../../components/ui/Seg';
 import { IconButton } from '../../components/ui/IconButton';
 import { ChatInput } from '../../components/chat/ChatInput';
 import { MessageItem } from '../../components/chat/MessageItem';
+import { ErrorBanner } from '../../components/chat/ErrorBanner';
+import { HistoryModal } from '../../components/history/HistoryModal';
+import { OnboardingModal } from '../../components/onboarding/OnboardingModal';
 import { useChatStore } from '../../store/useChat';
 import { useContextStore } from '../../store/useContext';
+import { storage } from '../../lib/storage';
 import { type AiProvider } from '../../lib/ai';
 import { SLASH_COMMANDS } from '../../lib/context/prompts';
 
 export const App: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useI18n();
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   const {
     messages,
@@ -34,6 +38,15 @@ export const App: React.FC = () => {
   } = useContextStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check onboarding on mount
+  useEffect(() => {
+    storage.get('sidemind_onboarding_completed').then((done) => {
+      if (!done) {
+        setIsOnboardingOpen(true);
+      }
+    });
+  }, []);
 
   // Auto-fetch context on mount
   useEffect(() => {
@@ -63,14 +76,17 @@ export const App: React.FC = () => {
   }, [messages, isStreaming]);
 
   const openOptions = () => {
-    if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+    } else if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
       chrome.runtime.openOptionsPage();
     } else {
-      alert('Options page (Configure API keys in Phase 3)');
+      window.open('/options.html', '_blank');
     }
   };
 
   const pageTypeBadge = context?.pageType ? context.pageType.toUpperCase() : 'PAGE';
+  const lastError = messages[messages.length - 1]?.error;
 
   return (
     <div className="panel">
@@ -105,6 +121,14 @@ export const App: React.FC = () => {
         </div>
 
         <div className="row gap-1" style={{ flexShrink: 0 }}>
+          {/* History Button */}
+          <IconButton title={t('sidepanel.action.history')} onClick={() => setIsHistoryOpen(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </IconButton>
+
           {/* New Chat Button */}
           {messages.length > 0 && (
             <IconButton title={t('sidepanel.action.newChat')} onClick={clearChat}>
@@ -262,6 +286,7 @@ export const App: React.FC = () => {
                 isStreaming={isStreaming && idx === messages.length - 1 && msg.role === 'assistant'}
               />
             ))}
+            {lastError && <ErrorBanner error={lastError} />}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -271,6 +296,12 @@ export const App: React.FC = () => {
       <footer className="panel-footer" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
         <ChatInput />
       </footer>
+
+      {/* History Modal */}
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+
+      {/* Onboarding Tour */}
+      <OnboardingModal isOpen={isOnboardingOpen} onComplete={() => setIsOnboardingOpen(false)} />
     </div>
   );
 };

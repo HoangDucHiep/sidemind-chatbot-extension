@@ -4,6 +4,8 @@ import { create } from 'zustand';
 import { type AiProvider, streamChat, DEFAULT_MODELS } from '../lib/ai';
 import { buildSystemPrompt } from '../lib/context/prompts';
 import { storage } from '../lib/storage';
+import { getDecryptedApiKey } from '../lib/crypto';
+import { historyService } from '../lib/history';
 import { useContextStore } from './useContext';
 
 export interface ChatMessage {
@@ -78,12 +80,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const context = useContextStore.getState().context;
     const systemPrompt = buildSystemPrompt(context || undefined);
 
-    // Retrieve API key for active provider
-    let apiKey = '';
-    const savedKeys = await storage.get('sidemind_keys_encrypted');
-    if (savedKeys && savedKeys[activeProvider]) {
-      apiKey = savedKeys[activeProvider]!;
-    }
+    // Retrieve decrypted API key for active provider
+    const apiKey = await getDecryptedApiKey(activeProvider);
+    const temperature = (await storage.get('sidemind_temperature')) ?? 0.7;
+    const maxTokens = (await storage.get('sidemind_max_tokens')) ?? 2048;
 
     // Build payload messages
     const payload = [
@@ -105,6 +105,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         {
           apiKey,
           model: activeModel,
+          temperature,
+          maxTokens,
         },
         abortController.signal
       );
@@ -120,6 +122,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       set({ isStreaming: false, abortController: null });
+
+      // Save updated conversation to history
+      const currentMessages = get().messages;
+      const firstUserMsg = currentMessages.find((m) => m.role === 'user')?.content || 'Conversation';
+      const title = firstUserMsg.slice(0, 32) + (firstUserMsg.length > 32 ? '…' : '');
+
+      historyService.save({
+        id: currentMessages[0]?.id || `convo-${Date.now()}`,
+        title,
+        timestamp: Date.now(),
+        model: activeModel,
+        provider: activeProvider,
+        pageUrl: context?.url,
+        pageType: context?.pageType,
+        tags: [context?.pageType || 'general', activeProvider],
+        messageCount: currentMessages.length,
+        messages: currentMessages,
+      });
     } catch (err: any) {
       if (err.name === 'AbortError') {
         // User stopped manually

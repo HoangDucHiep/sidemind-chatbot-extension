@@ -50,6 +50,12 @@ export default defineConfig({
     side_panel: {
       default_path: 'sidepanel.html',
     },
+    // Options page — mở trong tab mới toàn màn hình
+    options_page: 'options.html',
+    options_ui: {
+      page: 'options.html',
+      open_in_tab: true,
+    },
     // Background service worker
     background: {
       service_worker: 'background.js',
