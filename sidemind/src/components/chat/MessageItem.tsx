@@ -25,7 +25,43 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isStreaming }
   // Convert markdown to HTML and inject interactive citation buttons
   const renderFormattedContent = () => {
     if (isUser) {
-      return <span>{message.content}</span>;
+      return (
+        <div>
+          {message.attachments && message.attachments.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: message.content ? '8px' : '0' }}>
+              {message.attachments.map((att) => (
+                <div key={att.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                  {att.isImage && att.base64 ? (
+                    <img
+                      src={att.base64}
+                      alt={att.name}
+                      style={{
+                        maxWidth: '180px',
+                        maxHeight: '140px',
+                        objectFit: 'cover',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="chip"
+                      style={{
+                        background: 'rgba(255,255,255,0.15)',
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        color: 'inherit',
+                        fontSize: '11px',
+                      }}
+                    >
+                      📄 {att.name}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {message.content && <span>{message.content}</span>}
+        </div>
+      );
     }
 
     // Convert raw markdown to html

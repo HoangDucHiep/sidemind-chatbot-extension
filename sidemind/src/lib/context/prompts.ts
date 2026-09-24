@@ -1,44 +1,63 @@
 // SideMind · Context Prompts & System Templates
 
 import { type PageContext } from './types';
+import { type TabSource } from '../../store/useMultiTab';
 
-export function buildSystemPrompt(context?: PageContext): string {
+export function buildSystemPrompt(context?: PageContext, extraTabs?: TabSource[]): string {
   let basePrompt = `You are SideMind, an intelligent AI assistant integrated into the browser sidebar.
-Your goal is to provide accurate, concise, and helpful answers based on the user's active webpage context.
+Your goal is to provide accurate, concise, and helpful answers based on the user's active webpage context and attached resources.
 
 GUIDELINES:
-1. Ground your answers in the provided context whenever relevant.
-2. When referencing specific statements, facts, or data points from the context, include numbered citations formatted exactly like [1], [2], [3] at the end of the claim.
-3. Use clean Markdown formatting (headings, bullet points, bold text, code blocks) to make your answers easy to read.
-4. If the user asks in Vietnamese, respond in Vietnamese. If the user asks in English, respond in English.
-5. If the context does not contain the answer, answer based on your general knowledge and clearly state that it is not mentioned on the current page.`;
+1. Ground your answers in the provided context and attached files whenever relevant.
+2. When referencing specific statements or data from the main page context, include numbered citations formatted like [1], [2].
+3. When referencing extra tab sources, include tab-prefixed citations formatted like [tab1] [1], [tab2] [2].
+4. Use clean Markdown formatting (headings, bullet points, bold text, code blocks) to make your answers easy to read.
+5. If the user asks in Vietnamese, respond in Vietnamese. If the user asks in English, respond in English.
+6. If the context does not contain the answer, answer based on your general knowledge and clearly state that it is not mentioned on the current page.`;
 
-  if (!context || !context.text) {
-    return basePrompt;
-  }
+  let contextBlock = '';
 
-  // Format numbered sentence chunks for citation indexing
-  let contextBlock = `\n\n--- WEBPAGE CONTEXT (${context.pageType.toUpperCase()}) ---`;
-  contextBlock += `\nTitle: ${context.title}`;
-  contextBlock += `\nURL: ${context.url}\n`;
+  if (context && context.text) {
+    contextBlock += `\n\n--- ACTIVE WEBPAGE CONTEXT (${context.pageType.toUpperCase()}) ---`;
+    contextBlock += `\nTitle: ${context.title}`;
+    contextBlock += `\nURL: ${context.url}\n`;
 
-  if (context.sentences && context.sentences.length > 0) {
-    contextBlock += `\nNumbered Content Chunks:\n`;
-    // Cap at 40 chunks to avoid token overflow
-    const chunks = context.sentences.slice(0, 40);
-    for (const chunk of chunks) {
-      const extra = chunk.timestampStr
-        ? ` (Time: ${chunk.timestampStr})`
-        : chunk.pageNumber
-          ? ` (Page ${chunk.pageNumber})`
-          : '';
-      contextBlock += `[${chunk.id}]${extra} ${chunk.text}\n`;
+    if (context.sentences && context.sentences.length > 0) {
+      contextBlock += `\nNumbered Content Chunks:\n`;
+      const chunks = context.sentences.slice(0, 35);
+      for (const chunk of chunks) {
+        const extra = chunk.timestampStr
+          ? ` (Time: ${chunk.timestampStr})`
+          : chunk.pageNumber
+            ? ` (Page ${chunk.pageNumber})`
+            : '';
+        contextBlock += `[${chunk.id}]${extra} ${chunk.text}\n`;
+      }
+    } else {
+      contextBlock += `\nContent:\n${context.text.slice(0, 6000)}`;
     }
-  } else {
-    contextBlock += `\nContent:\n${context.text.slice(0, 8000)}`;
+    contextBlock += `\n--- END ACTIVE CONTEXT ---\n`;
   }
 
-  contextBlock += `\n--- END CONTEXT ---\n`;
+  // Include multi-tab contexts if present
+  if (extraTabs && extraTabs.length > 0) {
+    extraTabs.forEach((tab, index) => {
+      const tabNum = index + 1;
+      const tabCtx = tab.context;
+      contextBlock += `\n\n--- EXTRA TAB SOURCE [tab${tabNum}]: ${tab.title} ---`;
+      contextBlock += `\nURL: ${tab.url}\n`;
+      if (tabCtx && tabCtx.sentences && tabCtx.sentences.length > 0) {
+        contextBlock += `\nNumbered Content Chunks:\n`;
+        const chunks = tabCtx.sentences.slice(0, 20);
+        for (const chunk of chunks) {
+          contextBlock += `[tab${tabNum}] [${chunk.id}] ${chunk.text}\n`;
+        }
+      } else if (tabCtx?.text) {
+        contextBlock += `\nContent:\n${tabCtx.text.slice(0, 3000)}`;
+      }
+      contextBlock += `\n--- END TAB [tab${tabNum}] ---\n`;
+    });
+  }
 
   return basePrompt + contextBlock;
 }
@@ -81,5 +100,15 @@ export const SLASH_COMMANDS: Record<
     prompt: 'Provide a structured, comprehensive summary covering all sections and important details of this page.',
     descEn: 'Full comprehensive summary',
     descVi: 'Tóm tắt đầy đủ toàn bộ nội dung',
+  },
+  '/tabs': {
+    prompt: 'Show multi-tab sources',
+    descEn: 'Select multi-tab context sources',
+    descVi: 'Chọn thêm tab nguồn ngữ cảnh',
+  },
+  '/attach': {
+    prompt: 'Attach local files',
+    descEn: 'Attach images, PDFs, or documents',
+    descVi: 'Đính kèm tệp, ảnh hoặc tài liệu',
   },
 };

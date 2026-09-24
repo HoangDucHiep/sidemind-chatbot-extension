@@ -19,10 +19,43 @@ export class AnthropicAdapter implements AiAdapter {
     const systemPrompt = systemMessages.map((m) => m.content).join('\n\n');
     const nonSystemMessages = messages
       .filter((m) => m.role !== 'system')
-      .map((m) => ({
-        role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
-        content: m.content,
-      }));
+      .map((m) => {
+        if (!m.attachments || m.attachments.length === 0) {
+          return {
+            role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+          };
+        }
+
+        const contentArr: any[] = [];
+        for (const att of m.attachments) {
+          if (att.isImage && att.base64) {
+            const rawBase64 = att.base64.split(',')[1] || att.base64;
+            contentArr.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: att.type || 'image/png',
+                data: rawBase64,
+              },
+            });
+          } else if (att.extractedText) {
+            contentArr.push({
+              type: 'text',
+              text: `\n[ATTACHED FILE: ${att.name}]\n${att.extractedText}\n[END FILE: ${att.name}]\n`,
+            });
+          }
+        }
+
+        if (m.content) {
+          contentArr.push({ type: 'text', text: m.content });
+        }
+
+        return {
+          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+          content: contentArr,
+        };
+      });
 
     // Ensure first message is user
     if (nonSystemMessages.length === 0 || nonSystemMessages[0].role !== 'user') {

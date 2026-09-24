@@ -22,7 +22,30 @@ export class OpenAiAdapter implements AiAdapter {
       },
       body: JSON.stringify({
         model: config.model || 'gpt-4o-mini',
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: messages.map((m) => {
+          if (!m.attachments || m.attachments.length === 0) {
+            return { role: m.role, content: m.content };
+          }
+
+          const contentArr: any[] = [];
+          for (const att of m.attachments) {
+            if (att.isImage && att.base64) {
+              contentArr.push({
+                type: 'image_url',
+                image_url: { url: att.base64 },
+              });
+            } else if (att.extractedText) {
+              contentArr.push({
+                type: 'text',
+                text: `\n[ATTACHED FILE: ${att.name}]\n${att.extractedText}\n[END FILE: ${att.name}]\n`,
+              });
+            }
+          }
+          if (m.content) {
+            contentArr.push({ type: 'text', text: m.content });
+          }
+          return { role: m.role, content: contentArr };
+        }),
         temperature: config.temperature ?? 0.7,
         max_tokens: config.maxTokens ?? 2048,
         stream: true,

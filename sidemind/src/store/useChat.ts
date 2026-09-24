@@ -7,6 +7,9 @@ import { storage } from '../lib/storage';
 import { getDecryptedApiKey } from '../lib/crypto';
 import { historyService } from '../lib/history';
 import { useContextStore } from './useContext';
+import { useMultiTabStore } from './useMultiTab';
+
+import { type FileAttachment } from '../lib/file-extractor';
 
 export interface ChatMessage {
   id: string;
@@ -14,6 +17,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   error?: string;
+  attachments?: FileAttachment[];
 }
 
 interface ChatState {
@@ -25,7 +29,7 @@ interface ChatState {
 
   setProvider: (provider: AiProvider) => void;
   setModel: (model: string) => void;
-  sendMessage: (prompt: string) => Promise<void>;
+  sendMessage: (prompt: string, attachments?: FileAttachment[]) => Promise<void>;
   stopStreaming: () => void;
   clearChat: () => void;
 }
@@ -49,15 +53,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     storage.set('sidemind_active_model', model);
   },
 
-  sendMessage: async (userPrompt: string) => {
+  sendMessage: async (userPrompt: string, attachments?: FileAttachment[]) => {
     const trimmed = userPrompt.trim();
-    if (!trimmed || get().isStreaming) return;
+    if ((!trimmed && (!attachments || attachments.length === 0)) || get().isStreaming) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
       content: trimmed,
       timestamp: Date.now(),
+      attachments,
     };
 
     const assistantMsgId = `assistant-${Date.now()}`;
@@ -78,7 +83,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     const { activeProvider, activeModel, messages } = get();
     const context = useContextStore.getState().context;
-    const systemPrompt = buildSystemPrompt(context || undefined);
+    const extraTabs = useMultiTabStore.getState().sources.filter((s) => s.status === 'ready');
+    const systemPrompt = buildSystemPrompt(context || undefined, extraTabs);
 
     // Retrieve decrypted API key for active provider
     const apiKey = await getDecryptedApiKey(activeProvider);
@@ -88,8 +94,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Build payload messages
     const payload = [
       { role: 'system' as const, content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: trimmed },
+      ...messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        attachments: m.attachments,
+      })),
+      {
+        role: 'user' as const,
+        content: trimmed,
+        attachments,
+      },
     ];
 
     try {

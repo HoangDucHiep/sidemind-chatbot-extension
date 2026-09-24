@@ -2,9 +2,12 @@
 
 export type AiProvider = 'openai' | 'anthropic' | 'gemini';
 
+import { type FileAttachment } from '../file-extractor';
+
 export interface AiMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  attachments?: FileAttachment[];
 }
 
 export interface AiProviderConfig {

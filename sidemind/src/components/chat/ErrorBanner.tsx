@@ -13,8 +13,12 @@ export const ErrorBanner: React.FC<ErrorBannerProps> = ({ error, onDismiss }) =>
   const isNetwork = error.includes('Network') || error.includes('Failed to fetch');
 
   const openOptions = () => {
-    if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+    } else if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
       chrome.runtime.openOptionsPage();
+    } else {
+      window.open('/options.html', '_blank');
     }
   };
 

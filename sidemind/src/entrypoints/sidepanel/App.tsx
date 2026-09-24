@@ -8,8 +8,10 @@ import { MessageItem } from '../../components/chat/MessageItem';
 import { ErrorBanner } from '../../components/chat/ErrorBanner';
 import { HistoryModal } from '../../components/history/HistoryModal';
 import { OnboardingModal } from '../../components/onboarding/OnboardingModal';
+import { MultiTabModal } from '../../components/chat/MultiTabModal';
 import { useChatStore } from '../../store/useChat';
 import { useContextStore } from '../../store/useContext';
+import { useMultiTabStore } from '../../store/useMultiTab';
 import { storage } from '../../lib/storage';
 import { type AiProvider } from '../../lib/ai';
 import { SLASH_COMMANDS } from '../../lib/context/prompts';
@@ -19,6 +21,7 @@ export const App: React.FC = () => {
   const { lang, setLang, t } = useI18n();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isMultiTabOpen, setIsMultiTabOpen] = useState(false);
 
   const {
     messages,
@@ -37,6 +40,8 @@ export const App: React.FC = () => {
     refreshContext,
   } = useContextStore();
 
+  const { sources: multiTabSources, removeTab } = useMultiTabStore();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check onboarding on mount
@@ -48,7 +53,7 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Auto-fetch context on mount
+  // Auto-fetch context on mount & handle tab changes
   useEffect(() => {
     refreshContext();
 
@@ -58,22 +63,49 @@ export const App: React.FC = () => {
       const handleTabUpdated = (_tabId: number, changeInfo: { status?: string }) => {
         if (changeInfo.status === 'complete') refreshContext();
       };
+      const handleTabRemoved = (tabId: number) => {
+        removeTab(tabId);
+      };
 
       chrome.tabs.onActivated?.addListener(handleTabActivated);
       chrome.tabs.onUpdated?.addListener(handleTabUpdated);
+      chrome.tabs.onRemoved?.addListener(handleTabRemoved);
 
       return () => {
         chrome.tabs.onActivated?.removeListener(handleTabActivated);
         chrome.tabs.onUpdated?.removeListener(handleTabUpdated);
+        chrome.tabs.onRemoved?.removeListener(handleTabRemoved);
       };
     }
     return undefined;
-  }, [refreshContext]);
+  }, [refreshContext, removeTab]);
 
   // Scroll to bottom on new messages or stream chunks
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
+
+  // Handle external commands & context menu triggers
+  useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+      const handleRuntimeMessage = (msg: any) => {
+        if (msg.type === 'EXECUTE_PROMPT' && msg.prompt) {
+          sendMessage(msg.prompt);
+        } else if (msg.type === 'COMMAND_NEW_CHAT') {
+          clearChat();
+        } else if (msg.type === 'COMMAND_COPY_LAST') {
+          const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+          if (lastAssistant?.content) {
+            navigator.clipboard.writeText(lastAssistant.content);
+          }
+        }
+      };
+
+      chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+      return () => chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
+    }
+    return undefined;
+  }, [sendMessage, clearChat, messages]);
 
   const openOptions = () => {
     if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
@@ -219,6 +251,15 @@ export const App: React.FC = () => {
           <span className="badge badge-muted" style={{ fontSize: '9px', padding: '1px 4px' }}>
             {pageTypeBadge}
           </span>
+          <button
+            type="button"
+            className="chip"
+            style={{ fontSize: '10px', padding: '1px 5px', cursor: 'pointer' }}
+            onClick={() => setIsMultiTabOpen(true)}
+            title="Add other browser tabs to AI context"
+          >
+            {t('sidepanel.sources.add', '+ Tab')}
+          </button>
           <IconButton
             title={t('sidepanel.context.refresh')}
             onClick={() => refreshContext()}
@@ -231,6 +272,68 @@ export const App: React.FC = () => {
           </IconButton>
         </div>
       </div>
+
+      {/* Multi-Tab Sources Strip */}
+      {multiTabSources.length > 0 && (
+        <div
+          style={{
+            padding: '4px 12px',
+            borderBottom: 'var(--hairline)',
+            background: 'var(--paper)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            overflowX: 'auto',
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: '10px', color: 'var(--muted)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+            +TABS:
+          </span>
+          {multiTabSources.map((tab, idx) => (
+            <div
+              key={tab.tabId}
+              className="chip"
+              style={{
+                fontSize: '10px',
+                padding: '1px 5px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                flexShrink: 0,
+                background: tab.status === 'error' ? 'var(--accent-soft)' : undefined,
+              }}
+            >
+              <span>[tab{idx + 1}]</span>
+              <span
+                style={{
+                  maxWidth: '90px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={tab.title}
+              >
+                {tab.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeTab(tab.tabId)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '10px',
+                  color: 'var(--muted)',
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Message stream / Empty State Body */}
       <div className="panel-body">
@@ -302,6 +405,9 @@ export const App: React.FC = () => {
 
       {/* Onboarding Tour */}
       <OnboardingModal isOpen={isOnboardingOpen} onComplete={() => setIsOnboardingOpen(false)} />
+
+      {/* Multi-Tab Selector Modal */}
+      <MultiTabModal isOpen={isMultiTabOpen} onClose={() => setIsMultiTabOpen(false)} />
     </div>
   );
 };

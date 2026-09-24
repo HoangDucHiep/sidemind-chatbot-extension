@@ -35,10 +35,39 @@ export class GeminiAdapter implements AiAdapter {
     // Convert chat history to Gemini format (role: 'user' | 'model')
     const contents = messages
       .filter((m) => m.role !== 'system')
-      .map((m) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }],
-      }));
+      .map((m) => {
+        const parts: any[] = [];
+
+        // Add image parts if attachments present
+        if (m.attachments && m.attachments.length > 0) {
+          for (const att of m.attachments) {
+            if (att.isImage && att.base64) {
+              const base64Data = att.base64.split(',')[1] || att.base64;
+              parts.push({
+                inlineData: {
+                  mimeType: att.type || 'image/png',
+                  data: base64Data,
+                },
+              });
+            } else if (att.extractedText) {
+              parts.push({
+                text: `\n[ATTACHED FILE: ${att.name}]\n${att.extractedText}\n[END FILE: ${att.name}]\n`,
+              });
+            }
+          }
+        }
+
+        if (m.content) {
+          parts.push({ text: m.content });
+        } else if (parts.length === 0) {
+          parts.push({ text: ' ' });
+        }
+
+        return {
+          role: m.role === 'user' ? 'user' : 'model',
+          parts,
+        };
+      });
 
     if (contents.length === 0) {
       contents.push({ role: 'user', parts: [{ text: 'Hello' }] });
