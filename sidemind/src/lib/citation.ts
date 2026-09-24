@@ -20,16 +20,20 @@ export function parseCitations(text: string): CitationMatch[] {
   return matches;
 }
 
-export async function highlightOnPage(tabId: number, chunkId: number, targetText?: string): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.tabs) return;
+export async function highlightOnPage(
+  tabId: number,
+  chunkId: number,
+  targetText?: string,
+): Promise<void> {
+  if (typeof chrome === "undefined" || !chrome.tabs) return;
 
   try {
     await chrome.tabs.sendMessage(tabId, {
-      type: 'HIGHLIGHT_TEXT',
+      type: "HIGHLIGHT_TEXT",
       chunkId,
       text: targetText,
     });
   } catch (err) {
-    console.warn('[SideMind] Failed to send highlight message to tab:', err);
+    console.warn("[SideMind] Failed to send highlight message to tab:", err);
   }
 }

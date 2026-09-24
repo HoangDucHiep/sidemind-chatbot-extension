@@ -1,8 +1,8 @@
 // SideMind · Clickable Citation Reference Component
 
-import React from 'react';
-import { highlightOnPage } from '../../lib/citation';
-import { useContextStore } from '../../store/useContext';
+import React from "react";
+import { highlightOnPage } from "../../lib/citation";
+import { useContextStore } from "../../store/useContext";
 
 interface CitationRefProps {
   chunkId: number;

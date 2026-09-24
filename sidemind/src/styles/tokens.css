@@ -15,9 +15,15 @@
   --shadow-rgb: 26, 26, 26;
 
   /* Typography */
-  --font-heading: 'Newsreader', 'Source Serif 4', 'Source Serif Pro', Cambria, Georgia, 'Times New Roman', serif;
-  --font-ui: 'Inter Tight', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, 'Liberation Mono', monospace;
+  --font-heading:
+    "Newsreader", "Source Serif 4", "Source Serif Pro", Cambria, Georgia,
+    "Times New Roman", serif;
+  --font-ui:
+    "Inter Tight", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-mono:
+    "IBM Plex Mono", "JetBrains Mono", "SF Mono", "Cascadia Code", Consolas,
+    "Liberation Mono", monospace;
 
   /* Type scale */
   --fs-xs: 11px;
@@ -76,5 +82,5 @@
 
 html[lang="vi"],
 html[data-lang="vi"] {
-  --font-heading: 'Source Serif 4', 'Newsreader', Cambria, Georgia, serif;
+  --font-heading: "Source Serif 4", "Newsreader", Cambria, Georgia, serif;
 }

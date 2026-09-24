@@ -1,40 +1,44 @@
 // SideMind · Google Gemini Streaming Adapter
 
-import { type AiAdapter, type AiMessage, type AiProviderConfig } from './types';
+import { type AiAdapter, type AiMessage, type AiProviderConfig } from "./types";
 
 export class GeminiAdapter implements AiAdapter {
-  readonly provider = 'gemini' as const;
+  readonly provider = "gemini" as const;
 
   async *stream(
     messages: AiMessage[],
     config: AiProviderConfig,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): AsyncGenerator<string, void, unknown> {
     if (!config.apiKey) {
-      throw new Error('MISSING_API_KEY: Google Gemini API key is not configured.');
+      throw new Error(
+        "MISSING_API_KEY: Google Gemini API key is not configured.",
+      );
     }
 
-    const rawModel = config.model || 'gemini-3.6-flash';
-    const modelName = rawModel.replace(/^models\//, '');
+    const rawModel = config.model || "gemini-3.6-flash";
+    const modelName = rawModel.replace(/^models\//, "");
     const apiKey = config.apiKey.trim();
 
     const buildUrl = (m: string) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-        m
+        m,
       )}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
 
     // Separate system instruction
-    const systemMessages = messages.filter((m) => m.role === 'system');
+    const systemMessages = messages.filter((m) => m.role === "system");
     const systemInstruction =
       systemMessages.length > 0
         ? {
-            parts: [{ text: systemMessages.map((m) => m.content).join('\n\n') }],
+            parts: [
+              { text: systemMessages.map((m) => m.content).join("\n\n") },
+            ],
           }
         : undefined;
 
     // Convert chat history to Gemini format (role: 'user' | 'model')
     const contents = messages
-      .filter((m) => m.role !== 'system')
+      .filter((m) => m.role !== "system")
       .map((m) => {
         const parts: any[] = [];
 
@@ -42,10 +46,10 @@ export class GeminiAdapter implements AiAdapter {
         if (m.attachments && m.attachments.length > 0) {
           for (const att of m.attachments) {
             if (att.isImage && att.base64) {
-              const base64Data = att.base64.split(',')[1] || att.base64;
+              const base64Data = att.base64.split(",")[1] || att.base64;
               parts.push({
                 inlineData: {
-                  mimeType: att.type || 'image/png',
+                  mimeType: att.type || "image/png",
                   data: base64Data,
                 },
               });
@@ -60,17 +64,17 @@ export class GeminiAdapter implements AiAdapter {
         if (m.content) {
           parts.push({ text: m.content });
         } else if (parts.length === 0) {
-          parts.push({ text: ' ' });
+          parts.push({ text: " " });
         }
 
         return {
-          role: m.role === 'user' ? 'user' : 'model',
+          role: m.role === "user" ? "user" : "model",
           parts,
         };
       });
 
     if (contents.length === 0) {
-      contents.push({ role: 'user', parts: [{ text: 'Hello' }] });
+      contents.push({ role: "user", parts: [{ text: "Hello" }] });
     }
 
     const payload = JSON.stringify({
@@ -83,17 +87,21 @@ export class GeminiAdapter implements AiAdapter {
     });
 
     let response = await fetch(buildUrl(modelName), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: payload,
       signal,
     });
 
     // If model is not found or deprecated and wasn't already gemini-3.6-flash, fallback to gemini-3.6-flash
-    if (!response.ok && (response.status === 404 || response.status === 400) && modelName !== 'gemini-3.6-flash') {
-      const fallbackRes = await fetch(buildUrl('gemini-3.6-flash'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    if (
+      !response.ok &&
+      (response.status === 404 || response.status === 400) &&
+      modelName !== "gemini-3.6-flash"
+    ) {
+      const fallbackRes = await fetch(buildUrl("gemini-3.6-flash"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: payload,
         signal,
       });
@@ -117,10 +125,10 @@ export class GeminiAdapter implements AiAdapter {
     }
 
     const reader = response.body?.getReader();
-    if (!reader) throw new Error('Response body is not readable');
+    if (!reader) throw new Error("Response body is not readable");
 
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
 
     try {
       while (true) {
@@ -128,14 +136,14 @@ export class GeminiAdapter implements AiAdapter {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith(':')) continue;
+          if (!trimmed || trimmed.startsWith(":")) continue;
 
-          if (trimmed.startsWith('data: ')) {
+          if (trimmed.startsWith("data: ")) {
             const dataStr = trimmed.slice(6);
             try {
               const data = JSON.parse(dataStr);

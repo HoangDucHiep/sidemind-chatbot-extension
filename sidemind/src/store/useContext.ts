@@ -1,8 +1,8 @@
 // SideMind · Context State Store (Zustand)
 
-import { create } from 'zustand';
-import { type PageContext } from '../lib/context/types';
-import { contextEngine } from '../lib/context/engine';
+import { create } from "zustand";
+import { type PageContext } from "../lib/context/types";
+import { contextEngine } from "../lib/context/engine";
 
 interface ContextState {
   tabId: number | null;
@@ -18,8 +18,8 @@ interface ContextState {
 
 export const useContextStore = create<ContextState>((set) => ({
   tabId: null,
-  url: '',
-  title: 'Current Webpage',
+  url: "",
+  title: "Current Webpage",
   context: null,
   isLoading: false,
   error: null,
@@ -28,33 +28,43 @@ export const useContextStore = create<ContextState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      if (typeof chrome === 'undefined' || !chrome.tabs) {
+      if (typeof chrome === "undefined" || !chrome.tabs) {
         // Fallback in dev/mock environment
         const fallback = await contextEngine.extract({
           url: window.location.href,
           title: document.title,
           document,
         });
-        set({ context: fallback, isLoading: false, url: window.location.href, title: document.title });
+        set({
+          context: fallback,
+          isLoading: false,
+          url: window.location.href,
+          title: document.title,
+        });
         return;
       }
 
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       if (!tab || !tab.id) {
-        set({ isLoading: false, error: 'No active tab found' });
+        set({ isLoading: false, error: "No active tab found" });
         return;
       }
 
       const tabId = tab.id;
-      const tabUrl = tab.url || '';
-      const tabTitle = tab.title || 'Untitled Page';
+      const tabUrl = tab.url || "";
+      const tabTitle = tab.title || "Untitled Page";
 
       set({ tabId, url: tabUrl, title: tabTitle });
 
       // Request page DOM from content script
-      let pageHtml = '';
+      let pageHtml = "";
       try {
-        const response = await chrome.tabs.sendMessage(tabId, { type: 'GET_PAGE_CONTENT' });
+        const response = await chrome.tabs.sendMessage(tabId, {
+          type: "GET_PAGE_CONTENT",
+        });
         if (response && response.html) {
           pageHtml = response.html;
         }
@@ -66,7 +76,7 @@ export const useContextStore = create<ContextState>((set) => ({
       let doc: Document | undefined;
       if (pageHtml) {
         const parser = new DOMParser();
-        doc = parser.parseFromString(pageHtml, 'text/html');
+        doc = parser.parseFromString(pageHtml, "text/html");
       }
 
       const extracted = await contextEngine.extract({
@@ -80,7 +90,7 @@ export const useContextStore = create<ContextState>((set) => ({
         context: extracted,
         isLoading: false,
         title: extracted.title || tabTitle,
-        error: extracted.status === 'error' ? extracted.error : null,
+        error: extracted.status === "error" ? extracted.error : null,
       });
     } catch (err) {
       set({

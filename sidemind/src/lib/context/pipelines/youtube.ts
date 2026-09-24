@@ -1,38 +1,45 @@
 // SideMind · YouTube Context Pipeline
 
-import { type ContextPipeline, type ExtractInput, type PageContext, type SentenceChunk } from '../types';
+import {
+  type ContextPipeline,
+  type ExtractInput,
+  type PageContext,
+  type SentenceChunk,
+} from "../types";
 
 function extractYouTubeVideoId(url: string): string | null {
-  const match = url.match(/(?:v=|\/embed\/|youtu\.be\/|\/v\/|\/shorts\/)([\w-]{11})/);
+  const match = url.match(
+    /(?:v=|\/embed\/|youtu\.be\/|\/v\/|\/shorts\/)([\w-]{11})/,
+  );
   return match ? match[1] : null;
 }
 
 function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export class YouTubePipeline implements ContextPipeline {
-  readonly pageType = 'youtube' as const;
+  readonly pageType = "youtube" as const;
 
   matches(url: string): boolean {
-    return url.includes('youtube.com/watch') || url.includes('youtu.be/');
+    return url.includes("youtube.com/watch") || url.includes("youtu.be/");
   }
 
   async extract(input: ExtractInput): Promise<PageContext> {
     const videoId = extractYouTubeVideoId(input.url);
-    const title = input.title || input.document?.title || 'YouTube Video';
+    const title = input.title || input.document?.title || "YouTube Video";
 
     if (!videoId) {
       return {
-        pageType: 'youtube',
+        pageType: "youtube",
         url: input.url,
         title,
         text: title,
         sentences: [{ id: 1, text: title }],
-        status: 'error',
-        error: 'Cannot extract YouTube video ID from URL.',
+        status: "error",
+        error: "Cannot extract YouTube video ID from URL.",
       };
     }
 
@@ -44,7 +51,7 @@ export class YouTubePipeline implements ContextPipeline {
 
       // Look for lang_code attribute
       const langMatch = listXml.match(/lang_code="([^"]+)"/);
-      const trackLang = langMatch ? langMatch[1] : 'en';
+      const trackLang = langMatch ? langMatch[1] : "en";
 
       // 2. Fetch json3 transcript
       const transcriptUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${trackLang}&fmt=json3`;
@@ -55,17 +62,20 @@ export class YouTubePipeline implements ContextPipeline {
         const events = transData.events || [];
 
         const sentences: SentenceChunk[] = [];
-        let fullText = '';
+        let fullText = "";
         let chunkIndex = 1;
 
         // Group dialogue cues into 10-15s paragraphs
-        let currentText = '';
+        let currentText = "";
         let currentStart = 0;
 
         for (const ev of events) {
           if (!ev.segs) continue;
-          const text = ev.segs.map((s: { utf8?: string }) => s.utf8 || '').join('').trim();
-          if (!text || text === '\n') continue;
+          const text = ev.segs
+            .map((s: { utf8?: string }) => s.utf8 || "")
+            .join("")
+            .trim();
+          if (!text || text === "\n") continue;
 
           const startSec = (ev.tStartMs || 0) / 1000;
 
@@ -73,7 +83,7 @@ export class YouTubePipeline implements ContextPipeline {
             currentStart = startSec;
             currentText = text;
           } else if (startSec - currentStart < 15) {
-            currentText += ' ' + text;
+            currentText += " " + text;
           } else {
             sentences.push({
               id: chunkIndex++,
@@ -99,13 +109,13 @@ export class YouTubePipeline implements ContextPipeline {
 
         if (sentences.length > 0) {
           return {
-            pageType: 'youtube',
+            pageType: "youtube",
             url: input.url,
             title,
             text: fullText.trim(),
             sentences,
             metadata: { videoId },
-            status: 'ready',
+            status: "ready",
           };
         }
       }
@@ -115,19 +125,23 @@ export class YouTubePipeline implements ContextPipeline {
 
     // Fallback: Use page metadata og:title + og:description
     const desc =
-      input.document?.querySelector('meta[name="description"]')?.getAttribute('content') ||
-      input.document?.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
-      '';
+      input.document
+        ?.querySelector('meta[name="description"]')
+        ?.getAttribute("content") ||
+      input.document
+        ?.querySelector('meta[property="og:description"]')
+        ?.getAttribute("content") ||
+      "";
 
     const fallbackText = `${title}\n\n${desc}`.trim();
     return {
-      pageType: 'youtube',
+      pageType: "youtube",
       url: input.url,
       title,
       text: fallbackText,
       sentences: [{ id: 1, text: fallbackText }],
       metadata: { videoId, description: desc },
-      status: 'ready',
+      status: "ready",
     };
   }
 }

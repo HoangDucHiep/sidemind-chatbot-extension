@@ -1,22 +1,25 @@
 // SideMind · API Key Verifier
 
-import { type AiProvider } from '../ai/types';
+import { type AiProvider } from "../ai/types";
 
 export interface VerifyResult {
   valid: boolean;
   error?: string;
 }
 
-export async function verifyApiKey(provider: AiProvider, apiKey: string): Promise<VerifyResult> {
+export async function verifyApiKey(
+  provider: AiProvider,
+  apiKey: string,
+): Promise<VerifyResult> {
   const cleanKey = apiKey.trim();
   if (!cleanKey) {
-    return { valid: false, error: 'API key is empty.' };
+    return { valid: false, error: "API key is empty." };
   }
 
   try {
-    if (provider === 'openai') {
-      const res = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
+    if (provider === "openai") {
+      const res = await fetch("https://api.openai.com/v1/models", {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${cleanKey}`,
         },
@@ -32,13 +35,13 @@ export async function verifyApiKey(provider: AiProvider, apiKey: string): Promis
       };
     }
 
-    if (provider === 'anthropic') {
-      const res = await fetch('https://api.anthropic.com/v1/models', {
-        method: 'GET',
+    if (provider === "anthropic") {
+      const res = await fetch("https://api.anthropic.com/v1/models", {
+        method: "GET",
         headers: {
-          'x-api-key': cleanKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
+          "x-api-key": cleanKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
         },
       });
 
@@ -52,10 +55,10 @@ export async function verifyApiKey(provider: AiProvider, apiKey: string): Promis
       };
     }
 
-    if (provider === 'gemini') {
+    if (provider === "gemini") {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(cleanKey)}`,
-        { method: 'GET' }
+        { method: "GET" },
       );
 
       if (res.ok) {
@@ -72,7 +75,10 @@ export async function verifyApiKey(provider: AiProvider, apiKey: string): Promis
   } catch (err) {
     return {
       valid: false,
-      error: err instanceof Error ? err.message : 'Network error occurred while testing API key.',
+      error:
+        err instanceof Error
+          ? err.message
+          : "Network error occurred while testing API key.",
     };
   }
 }

@@ -16,17 +16,21 @@ export function Seg<T extends string>({
   value,
   onChange,
   ariaLabel,
-  className = '',
+  className = "",
 }: SegProps<T>) {
   return (
-    <div className={`seg ${className}`.trim()} role="group" aria-label={ariaLabel}>
+    <div
+      className={`seg ${className}`.trim()}
+      role="group"
+      aria-label={ariaLabel}
+    >
       {options.map((opt) => {
         const isActive = opt.value === value;
         return (
           <button
             key={opt.value}
             type="button"
-            className={isActive ? 'active' : ''}
+            className={isActive ? "active" : ""}
             aria-pressed={isActive}
             onClick={() => onChange(opt.value)}
           >

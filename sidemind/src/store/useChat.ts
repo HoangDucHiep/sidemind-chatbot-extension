@@ -1,19 +1,19 @@
 // SideMind · Chat State Store (Zustand)
 
-import { create } from 'zustand';
-import { type AiProvider, streamChat, DEFAULT_MODELS } from '../lib/ai';
-import { buildSystemPrompt } from '../lib/context/prompts';
-import { storage } from '../lib/storage';
-import { getDecryptedApiKey } from '../lib/crypto';
-import { historyService } from '../lib/history';
-import { useContextStore } from './useContext';
-import { useMultiTabStore } from './useMultiTab';
+import { create } from "zustand";
+import { type AiProvider, streamChat, DEFAULT_MODELS } from "../lib/ai";
+import { buildSystemPrompt } from "../lib/context/prompts";
+import { storage } from "../lib/storage";
+import { getDecryptedApiKey } from "../lib/crypto";
+import { historyService } from "../lib/history";
+import { useContextStore } from "./useContext";
+import { useMultiTabStore } from "./useMultiTab";
 
-import { type FileAttachment } from '../lib/file-extractor';
+import { type FileAttachment } from "../lib/file-extractor";
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: number;
   error?: string;
@@ -29,7 +29,10 @@ interface ChatState {
 
   setProvider: (provider: AiProvider) => void;
   setModel: (model: string) => void;
-  sendMessage: (prompt: string, attachments?: FileAttachment[]) => Promise<void>;
+  sendMessage: (
+    prompt: string,
+    attachments?: FileAttachment[],
+  ) => Promise<void>;
   stopStreaming: () => void;
   clearChat: () => void;
 }
@@ -37,29 +40,33 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isStreaming: false,
-  activeProvider: 'gemini',
+  activeProvider: "gemini",
   activeModel: DEFAULT_MODELS.gemini,
   abortController: null,
 
   setProvider: (provider: AiProvider) => {
     const defaultModel = DEFAULT_MODELS[provider];
     set({ activeProvider: provider, activeModel: defaultModel });
-    storage.set('sidemind_active_provider', provider);
-    storage.set('sidemind_active_model', defaultModel);
+    storage.set("sidemind_active_provider", provider);
+    storage.set("sidemind_active_model", defaultModel);
   },
 
   setModel: (model: string) => {
     set({ activeModel: model });
-    storage.set('sidemind_active_model', model);
+    storage.set("sidemind_active_model", model);
   },
 
   sendMessage: async (userPrompt: string, attachments?: FileAttachment[]) => {
     const trimmed = userPrompt.trim();
-    if ((!trimmed && (!attachments || attachments.length === 0)) || get().isStreaming) return;
+    if (
+      (!trimmed && (!attachments || attachments.length === 0)) ||
+      get().isStreaming
+    )
+      return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
-      role: 'user',
+      role: "user",
       content: trimmed,
       timestamp: Date.now(),
       attachments,
@@ -68,8 +75,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const assistantMsgId = `assistant-${Date.now()}`;
     const assistantMsg: ChatMessage = {
       id: assistantMsgId,
-      role: 'assistant',
-      content: '',
+      role: "assistant",
+      content: "",
       timestamp: Date.now(),
     };
 
@@ -83,24 +90,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     const { activeProvider, activeModel, messages } = get();
     const context = useContextStore.getState().context;
-    const extraTabs = useMultiTabStore.getState().sources.filter((s) => s.status === 'ready');
+    const extraTabs = useMultiTabStore
+      .getState()
+      .sources.filter((s) => s.status === "ready");
     const systemPrompt = buildSystemPrompt(context || undefined, extraTabs);
 
     // Retrieve decrypted API key for active provider
     const apiKey = await getDecryptedApiKey(activeProvider);
-    const temperature = (await storage.get('sidemind_temperature')) ?? 0.7;
-    const maxTokens = (await storage.get('sidemind_max_tokens')) ?? 2048;
+    const temperature = (await storage.get("sidemind_temperature")) ?? 0.7;
+    const maxTokens = (await storage.get("sidemind_max_tokens")) ?? 2048;
 
     // Build payload messages
     const payload = [
-      { role: 'system' as const, content: systemPrompt },
+      { role: "system" as const, content: systemPrompt },
       ...messages.map((m) => ({
         role: m.role,
         content: m.content,
         attachments: m.attachments,
       })),
       {
-        role: 'user' as const,
+        role: "user" as const,
         content: trimmed,
         attachments,
       },
@@ -109,7 +118,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       if (!apiKey) {
         throw new Error(
-          `MISSING_KEY: Please enter your ${activeProvider.toUpperCase()} API key in Settings (⚙️) to start chatting.`
+          `MISSING_KEY: Please enter your ${activeProvider.toUpperCase()} API key in Settings (⚙️) to start chatting.`,
         );
       }
 
@@ -122,15 +131,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
           temperature,
           maxTokens,
         },
-        abortController.signal
+        abortController.signal,
       );
 
-      let accumulated = '';
+      let accumulated = "";
       for await (const chunk of stream) {
         accumulated += chunk;
         set((state) => ({
           messages: state.messages.map((m) =>
-            m.id === assistantMsgId ? { ...m, content: accumulated } : m
+            m.id === assistantMsgId ? { ...m, content: accumulated } : m,
           ),
         }));
       }
@@ -139,8 +148,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Save updated conversation to history
       const currentMessages = get().messages;
-      const firstUserMsg = currentMessages.find((m) => m.role === 'user')?.content || 'Conversation';
-      const title = firstUserMsg.slice(0, 32) + (firstUserMsg.length > 32 ? '…' : '');
+      const firstUserMsg =
+        currentMessages.find((m) => m.role === "user")?.content ||
+        "Conversation";
+      const title =
+        firstUserMsg.slice(0, 32) + (firstUserMsg.length > 32 ? "…" : "");
 
       historyService.save({
         id: currentMessages[0]?.id || `convo-${Date.now()}`,
@@ -150,12 +162,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
         provider: activeProvider,
         pageUrl: context?.url,
         pageType: context?.pageType,
-        tags: [context?.pageType || 'general', activeProvider],
+        tags: [context?.pageType || "general", activeProvider],
         messageCount: currentMessages.length,
         messages: currentMessages,
       });
     } catch (err: any) {
-      if (err.name === 'AbortError') {
+      if (err.name === "AbortError") {
         // User stopped manually
         set({ isStreaming: false, abortController: null });
         return;
@@ -169,12 +181,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           m.id === assistantMsgId
             ? {
                 ...m,
-                content:
-                  m.content ||
-                  `⚠️ Error: ${errorMessage}`,
+                content: m.content || `⚠️ Error: ${errorMessage}`,
                 error: errorMessage,
               }
-            : m
+            : m,
         ),
       }));
     }

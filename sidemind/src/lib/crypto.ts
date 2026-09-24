@@ -1,14 +1,14 @@
 // SideMind · WebCrypto AES-GCM-256 Encryption for API Keys
 // Keys are encrypted client-side before storage in chrome.storage.local
 
-import { storage } from './storage';
-import { type AiProvider } from './ai/types';
+import { storage } from "./storage";
+import { type AiProvider } from "./ai/types";
 
 // Helper: convert buffer to hex string and vice versa
 function bufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function hexToBuffer(hex: string): Uint8Array {
@@ -21,7 +21,7 @@ function hexToBuffer(hex: string): Uint8Array {
 
 // Generate or retrieve persistent local seed
 async function getOrCreateDeviceSalt(): Promise<Uint8Array> {
-  const saved = await storage.get('sidemind_keys_encrypted');
+  const saved = await storage.get("sidemind_keys_encrypted");
   if (saved?.salt) {
     return hexToBuffer(saved.salt);
   }
@@ -32,40 +32,44 @@ async function getOrCreateDeviceSalt(): Promise<Uint8Array> {
 // Derive a 256-bit AES-GCM key from device-unique material using PBKDF2
 async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
   // Use extension id and navigator userAgent as local entropy base
-  const entropy = (typeof chrome !== 'undefined' ? chrome.runtime?.id : '') + '-sidemind-client-secret';
+  const entropy =
+    (typeof chrome !== "undefined" ? chrome.runtime?.id : "") +
+    "-sidemind-client-secret";
   const encoder = new TextEncoder();
   const baseKey = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(entropy),
-    { name: 'PBKDF2' },
+    { name: "PBKDF2" },
     false,
-    ['deriveKey']
+    ["deriveKey"],
   );
 
   return crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
+      name: "PBKDF2",
       salt: salt as BufferSource,
       iterations: 100000,
-      hash: 'SHA-256',
+      hash: "SHA-256",
     },
     baseKey,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"],
   );
 }
 
-export async function encryptText(plaintext: string): Promise<{ ciphertext: string; iv: string; salt: string }> {
+export async function encryptText(
+  plaintext: string,
+): Promise<{ ciphertext: string; iv: string; salt: string }> {
   const salt = await getOrCreateDeviceSalt();
   const key = await deriveKey(salt);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoder = new TextEncoder();
 
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv as BufferSource },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    encoder.encode(plaintext)
+    encoder.encode(plaintext),
   );
 
   return {
@@ -75,16 +79,20 @@ export async function encryptText(plaintext: string): Promise<{ ciphertext: stri
   };
 }
 
-export async function decryptText(ciphertextHex: string, ivHex: string, saltHex: string): Promise<string> {
+export async function decryptText(
+  ciphertextHex: string,
+  ivHex: string,
+  saltHex: string,
+): Promise<string> {
   const salt = hexToBuffer(saltHex);
   const iv = hexToBuffer(ivHex);
   const key = await deriveKey(salt);
   const ciphertext = hexToBuffer(ciphertextHex);
 
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: iv as BufferSource },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    ciphertext as BufferSource
+    ciphertext as BufferSource,
   );
 
   const decoder = new TextDecoder();
@@ -92,35 +100,40 @@ export async function decryptText(ciphertextHex: string, ivHex: string, saltHex:
 }
 
 // Storage helpers for API Keys
-export async function saveApiKey(provider: AiProvider, rawApiKey: string): Promise<void> {
-  const current = (await storage.get('sidemind_keys_encrypted')) || {};
+export async function saveApiKey(
+  provider: AiProvider,
+  rawApiKey: string,
+): Promise<void> {
+  const current = (await storage.get("sidemind_keys_encrypted")) || {};
   if (!rawApiKey.trim()) {
     delete current[provider];
-    await storage.set('sidemind_keys_encrypted', current);
+    await storage.set("sidemind_keys_encrypted", current);
     return;
   }
 
   const { ciphertext, iv, salt } = await encryptText(rawApiKey.trim());
   current[provider] = `${ciphertext}:${iv}`;
   current.salt = salt;
-  await storage.set('sidemind_keys_encrypted', current);
+  await storage.set("sidemind_keys_encrypted", current);
 }
 
-export async function getDecryptedApiKey(provider: AiProvider): Promise<string> {
-  const current = await storage.get('sidemind_keys_encrypted');
+export async function getDecryptedApiKey(
+  provider: AiProvider,
+): Promise<string> {
+  const current = await storage.get("sidemind_keys_encrypted");
   if (!current || !current[provider] || !current.salt) {
-    return '';
+    return "";
   }
 
-  const parts = current[provider]!.split(':');
-  if (parts.length !== 2) return '';
+  const parts = current[provider]!.split(":");
+  if (parts.length !== 2) return "";
 
   const [ciphertext, iv] = parts;
   try {
     return await decryptText(ciphertext, iv, current.salt);
   } catch (err) {
-    console.warn('[SideMind] Failed to decrypt API key for', provider, err);
-    return '';
+    console.warn("[SideMind] Failed to decrypt API key for", provider, err);
+    return "";
   }
 }
 

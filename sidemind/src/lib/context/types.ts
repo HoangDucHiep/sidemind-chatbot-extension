@@ -1,6 +1,6 @@
 // SideMind · Context Engine Types
 
-export type PageType = 'youtube' | 'article' | 'pdf' | 'docs' | 'general';
+export type PageType = "youtube" | "article" | "pdf" | "docs" | "general";
 
 export interface SentenceChunk {
   id: number;
@@ -23,7 +23,7 @@ export interface PageContext {
     totalPages?: number;
     description?: string;
   };
-  status: 'ready' | 'error';
+  status: "ready" | "error";
   error?: string;
 }
 

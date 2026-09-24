@@ -1,4 +1,4 @@
-import React, { type ButtonHTMLAttributes } from 'react';
+import React, { type ButtonHTMLAttributes } from "react";
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   title: string;
@@ -7,7 +7,7 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
 
 export const IconButton: React.FC<IconButtonProps> = ({
   title,
-  className = '',
+  className = "",
   children,
   ...props
 }) => {

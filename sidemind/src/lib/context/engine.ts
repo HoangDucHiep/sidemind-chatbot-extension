@@ -1,12 +1,17 @@
 // SideMind · Context Engine Orchestrator
 
-import { classifyPageType } from './classifier';
-import { type ContextPipeline, type ExtractInput, type PageContext, type PageType } from './types';
-import { YouTubePipeline } from './pipelines/youtube';
-import { ArticlePipeline } from './pipelines/article';
-import { PDFPipeline } from './pipelines/pdf';
-import { DocsPipeline } from './pipelines/docs';
-import { GeneralPipeline } from './pipelines/general';
+import { classifyPageType } from "./classifier";
+import {
+  type ContextPipeline,
+  type ExtractInput,
+  type PageContext,
+  type PageType,
+} from "./types";
+import { YouTubePipeline } from "./pipelines/youtube";
+import { ArticlePipeline } from "./pipelines/article";
+import { PDFPipeline } from "./pipelines/pdf";
+import { DocsPipeline } from "./pipelines/docs";
+import { GeneralPipeline } from "./pipelines/general";
 
 export class ContextEngine {
   private pipelines: Record<PageType, ContextPipeline> = {
@@ -26,6 +31,6 @@ export class ContextEngine {
 
 export const contextEngine = new ContextEngine();
 
-export * from './types';
-export * from './classifier';
-export * from './prompts';
+export * from "./types";
+export * from "./classifier";
+export * from "./prompts";

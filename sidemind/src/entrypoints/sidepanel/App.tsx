@@ -1,20 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useTheme } from '../../lib/theme';
-import { useI18n } from '../../lib/i18n';
-import { Seg } from '../../components/ui/Seg';
-import { IconButton } from '../../components/ui/IconButton';
-import { ChatInput } from '../../components/chat/ChatInput';
-import { MessageItem } from '../../components/chat/MessageItem';
-import { ErrorBanner } from '../../components/chat/ErrorBanner';
-import { HistoryModal } from '../../components/history/HistoryModal';
-import { OnboardingModal } from '../../components/onboarding/OnboardingModal';
-import { MultiTabModal } from '../../components/chat/MultiTabModal';
-import { useChatStore } from '../../store/useChat';
-import { useContextStore } from '../../store/useContext';
-import { useMultiTabStore } from '../../store/useMultiTab';
-import { storage } from '../../lib/storage';
-import { type AiProvider } from '../../lib/ai';
-import { SLASH_COMMANDS } from '../../lib/context/prompts';
+import React, { useEffect, useRef, useState } from "react";
+import { useTheme } from "../../lib/theme";
+import { useI18n } from "../../lib/i18n";
+import { Seg } from "../../components/ui/Seg";
+import { IconButton } from "../../components/ui/IconButton";
+import { ChatInput } from "../../components/chat/ChatInput";
+import { MessageItem } from "../../components/chat/MessageItem";
+import { ErrorBanner } from "../../components/chat/ErrorBanner";
+import { HistoryModal } from "../../components/history/HistoryModal";
+import { OnboardingModal } from "../../components/onboarding/OnboardingModal";
+import { MultiTabModal } from "../../components/chat/MultiTabModal";
+import { useChatStore } from "../../store/useChat";
+import { useContextStore } from "../../store/useContext";
+import { useMultiTabStore } from "../../store/useMultiTab";
+import { storage } from "../../lib/storage";
+import { type AiProvider } from "../../lib/ai";
+import { SLASH_COMMANDS } from "../../lib/context/prompts";
 
 export const App: React.FC = () => {
   const { theme, setTheme } = useTheme();
@@ -46,7 +46,7 @@ export const App: React.FC = () => {
 
   // Check onboarding on mount
   useEffect(() => {
-    storage.get('sidemind_onboarding_completed').then((done) => {
+    storage.get("sidemind_onboarding_completed").then((done) => {
       if (!done) {
         setIsOnboardingOpen(true);
       }
@@ -58,10 +58,13 @@ export const App: React.FC = () => {
     refreshContext();
 
     // Listen to tab changes
-    if (typeof chrome !== 'undefined' && chrome.tabs) {
+    if (typeof chrome !== "undefined" && chrome.tabs) {
       const handleTabActivated = () => refreshContext();
-      const handleTabUpdated = (_tabId: number, changeInfo: { status?: string }) => {
-        if (changeInfo.status === 'complete') refreshContext();
+      const handleTabUpdated = (
+        _tabId: number,
+        changeInfo: { status?: string },
+      ) => {
+        if (changeInfo.status === "complete") refreshContext();
       };
       const handleTabRemoved = (tabId: number) => {
         removeTab(tabId);
@@ -82,19 +85,21 @@ export const App: React.FC = () => {
 
   // Scroll to bottom on new messages or stream chunks
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
 
   // Handle external commands & context menu triggers
   useEffect(() => {
-    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+    if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       const handleRuntimeMessage = (msg: any) => {
-        if (msg.type === 'EXECUTE_PROMPT' && msg.prompt) {
+        if (msg.type === "EXECUTE_PROMPT" && msg.prompt) {
           sendMessage(msg.prompt);
-        } else if (msg.type === 'COMMAND_NEW_CHAT') {
+        } else if (msg.type === "COMMAND_NEW_CHAT") {
           clearChat();
-        } else if (msg.type === 'COMMAND_COPY_LAST') {
-          const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+        } else if (msg.type === "COMMAND_COPY_LAST") {
+          const lastAssistant = [...messages]
+            .reverse()
+            .find((m) => m.role === "assistant");
           if (lastAssistant?.content) {
             navigator.clipboard.writeText(lastAssistant.content);
           }
@@ -102,22 +107,28 @@ export const App: React.FC = () => {
       };
 
       chrome.runtime.onMessage.addListener(handleRuntimeMessage);
-      return () => chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
+      return () =>
+        chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
     }
     return undefined;
   }, [sendMessage, clearChat, messages]);
 
   const openOptions = () => {
-    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
-      chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
-    } else if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
+    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+      chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
+    } else if (
+      typeof chrome !== "undefined" &&
+      chrome.runtime?.openOptionsPage
+    ) {
       chrome.runtime.openOptionsPage();
     } else {
-      window.open('/options.html', '_blank');
+      window.open("/options.html", "_blank");
     }
   };
 
-  const pageTypeBadge = context?.pageType ? context.pageType.toUpperCase() : 'PAGE';
+  const pageTypeBadge = context?.pageType
+    ? context.pageType.toUpperCase()
+    : "PAGE";
   const lastError = messages[messages.length - 1]?.error;
 
   return (
@@ -125,8 +136,18 @@ export const App: React.FC = () => {
       {/* Header */}
       <header className="panel-header">
         <div className="row gap-2" style={{ flexShrink: 0 }}>
-          <span className="font-heading" style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Side<span style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Mind</span>
+          <span
+            className="font-heading"
+            style={{
+              fontSize: "17px",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Side
+            <span style={{ color: "var(--accent)", fontStyle: "italic" }}>
+              Mind
+            </span>
           </span>
 
           {/* Provider Selector */}
@@ -134,15 +155,15 @@ export const App: React.FC = () => {
             value={activeProvider}
             onChange={(e) => setProvider(e.target.value as AiProvider)}
             style={{
-              padding: '2px 4px',
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              background: 'var(--paper)',
-              color: 'var(--ink)',
-              border: '1px solid var(--rule)',
+              padding: "2px 4px",
+              fontSize: "11px",
+              fontFamily: "var(--font-mono)",
+              background: "var(--paper)",
+              color: "var(--ink)",
+              border: "1px solid var(--rule)",
               borderRadius: 0,
-              cursor: 'pointer',
-              outline: 'none',
+              cursor: "pointer",
+              outline: "none",
             }}
             title="Choose AI Provider"
           >
@@ -154,8 +175,16 @@ export const App: React.FC = () => {
 
         <div className="row gap-1" style={{ flexShrink: 0 }}>
           {/* History Button */}
-          <IconButton title={t('sidepanel.action.history')} onClick={() => setIsHistoryOpen(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <IconButton
+            title={t("sidepanel.action.history")}
+            onClick={() => setIsHistoryOpen(true)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -163,18 +192,26 @@ export const App: React.FC = () => {
 
           {/* New Chat Button */}
           {messages.length > 0 && (
-            <IconButton title={t('sidepanel.action.newChat')} onClick={clearChat}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <IconButton
+              title={t("sidepanel.action.newChat")}
+              onClick={clearChat}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </IconButton>
           )}
 
           {/* Language Seg */}
-          <Seg<'en' | 'vi'>
+          <Seg<"en" | "vi">
             options={[
-              { value: 'en', label: 'EN' },
-              { value: 'vi', label: 'VI' },
+              { value: "en", label: "EN" },
+              { value: "vi", label: "VI" },
             ]}
             value={lang}
             onChange={setLang}
@@ -183,11 +220,22 @@ export const App: React.FC = () => {
 
           {/* Theme Toggle Button (Sun / Moon) */}
           <IconButton
-            title={theme === 'dark' ? t('global.theme.light') : t('global.theme.dark')}
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title={
+              theme === "dark"
+                ? t("global.theme.light")
+                : t("global.theme.dark")
+            }
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
-            {theme === 'dark' ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {theme === "dark" ? (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2" />
                 <path d="M12 20v2" />
@@ -199,15 +247,30 @@ export const App: React.FC = () => {
                 <path d="M19.07 4.93l-1.41 1.41" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
               </svg>
             )}
           </IconButton>
 
           {/* Settings Button */}
-          <IconButton title={t('sidepanel.action.settings')} onClick={openOptions}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <IconButton
+            title={t("sidepanel.action.settings")}
+            onClick={openOptions}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
@@ -218,54 +281,70 @@ export const App: React.FC = () => {
       {/* Context bar */}
       <div
         style={{
-          padding: '6px 12px',
-          borderBottom: 'var(--hairline)',
-          background: 'var(--paper)',
-          fontSize: 'var(--fs-xs)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
+          padding: "6px 12px",
+          borderBottom: "var(--hairline)",
+          background: "var(--paper)",
+          fontSize: "var(--fs-xs)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "8px",
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            overflow: "hidden",
+          }}
+        >
           <span className="text-eyebrow" style={{ flexShrink: 0 }}>
-            {t('sidepanel.context.label')}:
+            {t("sidepanel.context.label")}:
           </span>
           <span
             style={{
-              fontFamily: 'var(--font-ui)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '180px',
+              fontFamily: "var(--font-ui)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "180px",
             }}
             title={pageUrl}
           >
-            {isContextLoading ? 'Extracting page…' : pageTitle}
+            {isContextLoading ? "Extracting page…" : pageTitle}
           </span>
         </div>
 
         <div className="row gap-1" style={{ flexShrink: 0 }}>
-          <span className="badge badge-muted" style={{ fontSize: '9px', padding: '1px 4px' }}>
+          <span
+            className="badge badge-muted"
+            style={{ fontSize: "9px", padding: "1px 4px" }}
+          >
             {pageTypeBadge}
           </span>
           <button
             type="button"
             className="chip"
-            style={{ fontSize: '10px', padding: '1px 5px', cursor: 'pointer' }}
+            style={{ fontSize: "10px", padding: "1px 5px", cursor: "pointer" }}
             onClick={() => setIsMultiTabOpen(true)}
             title="Add other browser tabs to AI context"
           >
-            {t('sidepanel.sources.add', '+ Tab')}
+            {t("sidepanel.sources.add", "+ Tab")}
           </button>
           <IconButton
-            title={t('sidepanel.context.refresh')}
+            title={t("sidepanel.context.refresh")}
             onClick={() => refreshContext()}
-            style={{ width: '22px', height: '22px' }}
+            style={{ width: "22px", height: "22px" }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '12px', height: '12px' }}>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ width: "12px", height: "12px" }}
+            >
               <path d="M23 4v6h-6M1 20v-6h6" />
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
             </svg>
@@ -277,17 +356,24 @@ export const App: React.FC = () => {
       {multiTabSources.length > 0 && (
         <div
           style={{
-            padding: '4px 12px',
-            borderBottom: 'var(--hairline)',
-            background: 'var(--paper)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            overflowX: 'auto',
+            padding: "4px 12px",
+            borderBottom: "var(--hairline)",
+            background: "var(--paper)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            overflowX: "auto",
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: '10px', color: 'var(--muted)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+          <span
+            style={{
+              fontSize: "10px",
+              color: "var(--muted)",
+              flexShrink: 0,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
             +TABS:
           </span>
           {multiTabSources.map((tab, idx) => (
@@ -295,22 +381,23 @@ export const App: React.FC = () => {
               key={tab.tabId}
               className="chip"
               style={{
-                fontSize: '10px',
-                padding: '1px 5px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
+                fontSize: "10px",
+                padding: "1px 5px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
                 flexShrink: 0,
-                background: tab.status === 'error' ? 'var(--accent-soft)' : undefined,
+                background:
+                  tab.status === "error" ? "var(--accent-soft)" : undefined,
               }}
             >
               <span>[tab{idx + 1}]</span>
               <span
                 style={{
-                  maxWidth: '90px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  maxWidth: "90px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
                 title={tab.title}
               >
@@ -320,12 +407,12 @@ export const App: React.FC = () => {
                 type="button"
                 onClick={() => removeTab(tab.tabId)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
                   padding: 0,
-                  fontSize: '10px',
-                  color: 'var(--muted)',
+                  fontSize: "10px",
+                  color: "var(--muted)",
                 }}
               >
                 ×
@@ -340,44 +427,54 @@ export const App: React.FC = () => {
         {messages.length === 0 ? (
           <div
             style={{
-              margin: 'auto 0',
-              textAlign: 'center',
-              padding: '24px 8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
+              margin: "auto 0",
+              textAlign: "center",
+              padding: "24px 8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "12px",
             }}
           >
             <div
               style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: '28px',
-                fontStyle: 'italic',
-                color: 'var(--ink)',
+                fontFamily: "var(--font-heading)",
+                fontSize: "28px",
+                fontStyle: "italic",
+                color: "var(--ink)",
               }}
             >
               SideMind
             </div>
-            <h2 className="text-headline" style={{ fontSize: '18px' }}>
-              {t('sidepanel.empty.hero')}
+            <h2 className="text-headline" style={{ fontSize: "18px" }}>
+              {t("sidepanel.empty.hero")}
             </h2>
-            <p className="text-sm text-muted" style={{ maxWidth: '280px' }}>
-              {t('sidepanel.empty.sub')}
+            <p className="text-sm text-muted" style={{ maxWidth: "280px" }}>
+              {t("sidepanel.empty.sub")}
             </p>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
-              {(['/summary', '/explain', '/translate', '/tldr'] as const).map((cmd) => (
-                <button
-                  key={cmd}
-                  type="button"
-                  className="chip"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => sendMessage(SLASH_COMMANDS[cmd].prompt)}
-                >
-                  {cmd}
-                </button>
-              ))}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                justifyContent: "center",
+                marginTop: "8px",
+              }}
+            >
+              {(["/summary", "/explain", "/translate", "/tldr"] as const).map(
+                (cmd) => (
+                  <button
+                    key={cmd}
+                    type="button"
+                    className="chip"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => sendMessage(SLASH_COMMANDS[cmd].prompt)}
+                  >
+                    {cmd}
+                  </button>
+                ),
+              )}
             </div>
           </div>
         ) : (
@@ -386,7 +483,11 @@ export const App: React.FC = () => {
               <MessageItem
                 key={msg.id}
                 message={msg}
-                isStreaming={isStreaming && idx === messages.length - 1 && msg.role === 'assistant'}
+                isStreaming={
+                  isStreaming &&
+                  idx === messages.length - 1 &&
+                  msg.role === "assistant"
+                }
               />
             ))}
             {lastError && <ErrorBanner error={lastError} />}
@@ -396,18 +497,30 @@ export const App: React.FC = () => {
       </div>
 
       {/* Chat input footer */}
-      <footer className="panel-footer" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+      <footer
+        className="panel-footer"
+        style={{ flexDirection: "column", alignItems: "stretch" }}
+      >
         <ChatInput />
       </footer>
 
       {/* History Modal */}
-      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+      />
 
       {/* Onboarding Tour */}
-      <OnboardingModal isOpen={isOnboardingOpen} onComplete={() => setIsOnboardingOpen(false)} />
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onComplete={() => setIsOnboardingOpen(false)}
+      />
 
       {/* Multi-Tab Selector Modal */}
-      <MultiTabModal isOpen={isMultiTabOpen} onClose={() => setIsMultiTabOpen(false)} />
+      <MultiTabModal
+        isOpen={isMultiTabOpen}
+        onClose={() => setIsMultiTabOpen(false)}
+      />
     </div>
   );
 };
