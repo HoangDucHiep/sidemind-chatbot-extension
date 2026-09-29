@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" fill="#1a1a1a" rx="16"/>
+  <rect x="8" y="8" width="112" height="112" fill="#f5f1e8" rx="8"/>
+  <text x="36" y="84" font-family="Newsreader, Georgia, serif" font-weight="700" font-size="72" fill="#1a1a1a">S</text>
+  <text x="70" y="84" font-family="Newsreader, Georgia, serif" font-weight="700" font-style="italic" font-size="72" fill="#c8392f">M</text>
+</svg>

@@ -6,6 +6,7 @@
 //   - Permissions tối thiểu (justify từng cái theo SRS Phụ lục B)
 
 import { defineConfig } from 'wxt';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   // srcDir tùy biến — mặc định của WXT là ./, ta dùng ./src
@@ -49,6 +50,12 @@ export default defineConfig({
     side_panel: {
       default_path: 'sidepanel.html',
     },
+    // Options page — mở trong tab mới toàn màn hình
+    options_page: 'options.html',
+    options_ui: {
+      page: 'options.html',
+      open_in_tab: true,
+    },
     // Background service worker
     background: {
       service_worker: 'background.js',
@@ -87,15 +94,13 @@ export default defineConfig({
     },
   },
 
-  // Vite config — alias @/* → src/*
+  // Vite config — plugins + alias @/* → src/*
   vite: () => ({
+    plugins: [react()],
     resolve: {
       alias: {
         '@': '/src',
       },
     },
   }),
-
-  // Modules — modules được import trong entrypoints
-  modules: ['@wxt-dev/module-react'],
 });

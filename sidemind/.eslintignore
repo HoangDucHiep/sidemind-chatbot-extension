@@ -1,0 +1,4 @@
+dist
+.wxt
+node_modules
+*.d.ts

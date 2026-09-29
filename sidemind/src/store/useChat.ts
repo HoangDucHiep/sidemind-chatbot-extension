@@ -1,0 +1,205 @@
+// SideMind · Chat State Store (Zustand)
+
+import { create } from "zustand";
+import { type AiProvider, streamChat, DEFAULT_MODELS } from "../lib/ai";
+import { buildSystemPrompt } from "../lib/context/prompts";
+import { storage } from "../lib/storage";
+import { getDecryptedApiKey } from "../lib/crypto";
+import { historyService } from "../lib/history";
+import { useContextStore } from "./useContext";
+import { useMultiTabStore } from "./useMultiTab";
+
+import { type FileAttachment } from "../lib/file-extractor";
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: number;
+  error?: string;
+  attachments?: FileAttachment[];
+}
+
+interface ChatState {
+  messages: ChatMessage[];
+  isStreaming: boolean;
+  activeProvider: AiProvider;
+  activeModel: string;
+  abortController: AbortController | null;
+
+  setProvider: (provider: AiProvider) => void;
+  setModel: (model: string) => void;
+  sendMessage: (
+    prompt: string,
+    attachments?: FileAttachment[],
+  ) => Promise<void>;
+  stopStreaming: () => void;
+  clearChat: () => void;
+}
+
+export const useChatStore = create<ChatState>((set, get) => ({
+  messages: [],
+  isStreaming: false,
+  activeProvider: "gemini",
+  activeModel: DEFAULT_MODELS.gemini,
+  abortController: null,
+
+  setProvider: (provider: AiProvider) => {
+    const defaultModel = DEFAULT_MODELS[provider];
+    set({ activeProvider: provider, activeModel: defaultModel });
+    storage.set("sidemind_active_provider", provider);
+    storage.set("sidemind_active_model", defaultModel);
+  },
+
+  setModel: (model: string) => {
+    set({ activeModel: model });
+    storage.set("sidemind_active_model", model);
+  },
+
+  sendMessage: async (userPrompt: string, attachments?: FileAttachment[]) => {
+    const trimmed = userPrompt.trim();
+    if (
+      (!trimmed && (!attachments || attachments.length === 0)) ||
+      get().isStreaming
+    )
+      return;
+
+    const userMsg: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: trimmed,
+      timestamp: Date.now(),
+      attachments,
+    };
+
+    const assistantMsgId = `assistant-${Date.now()}`;
+    const assistantMsg: ChatMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    };
+
+    set((state) => ({
+      messages: [...state.messages, userMsg, assistantMsg],
+      isStreaming: true,
+    }));
+
+    const abortController = new AbortController();
+    set({ abortController });
+
+    const { activeProvider, activeModel, messages } = get();
+    const context = useContextStore.getState().context;
+    const extraTabs = useMultiTabStore
+      .getState()
+      .sources.filter((s) => s.status === "ready");
+    const systemPrompt = buildSystemPrompt(context || undefined, extraTabs);
+
+    // Retrieve decrypted API key for active provider
+    const apiKey = await getDecryptedApiKey(activeProvider);
+    const temperature = (await storage.get("sidemind_temperature")) ?? 0.7;
+    const maxTokens = (await storage.get("sidemind_max_tokens")) ?? 2048;
+
+    // Build payload messages
+    const payload = [
+      { role: "system" as const, content: systemPrompt },
+      ...messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        attachments: m.attachments,
+      })),
+      {
+        role: "user" as const,
+        content: trimmed,
+        attachments,
+      },
+    ];
+
+    try {
+      if (!apiKey) {
+        throw new Error(
+          `MISSING_KEY: Please enter your ${activeProvider.toUpperCase()} API key in Settings (⚙️) to start chatting.`,
+        );
+      }
+
+      const stream = streamChat(
+        activeProvider,
+        payload,
+        {
+          apiKey,
+          model: activeModel,
+          temperature,
+          maxTokens,
+        },
+        abortController.signal,
+      );
+
+      let accumulated = "";
+      for await (const chunk of stream) {
+        accumulated += chunk;
+        set((state) => ({
+          messages: state.messages.map((m) =>
+            m.id === assistantMsgId ? { ...m, content: accumulated } : m,
+          ),
+        }));
+      }
+
+      set({ isStreaming: false, abortController: null });
+
+      // Save updated conversation to history
+      const currentMessages = get().messages;
+      const firstUserMsg =
+        currentMessages.find((m) => m.role === "user")?.content ||
+        "Conversation";
+      const title =
+        firstUserMsg.slice(0, 32) + (firstUserMsg.length > 32 ? "…" : "");
+
+      historyService.save({
+        id: currentMessages[0]?.id || `convo-${Date.now()}`,
+        title,
+        timestamp: Date.now(),
+        model: activeModel,
+        provider: activeProvider,
+        pageUrl: context?.url,
+        pageType: context?.pageType,
+        tags: [context?.pageType || "general", activeProvider],
+        messageCount: currentMessages.length,
+        messages: currentMessages,
+      });
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        // User stopped manually
+        set({ isStreaming: false, abortController: null });
+        return;
+      }
+
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      set((state) => ({
+        isStreaming: false,
+        abortController: null,
+        messages: state.messages.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content: m.content || `⚠️ Error: ${errorMessage}`,
+                error: errorMessage,
+              }
+            : m,
+        ),
+      }));
+    }
+  },
+
+  stopStreaming: () => {
+    const { abortController } = get();
+    if (abortController) {
+      abortController.abort();
+      set({ isStreaming: false, abortController: null });
+    }
+  },
+
+  clearChat: () => {
+    get().stopStreaming();
+    set({ messages: [] });
+  },
+}));
