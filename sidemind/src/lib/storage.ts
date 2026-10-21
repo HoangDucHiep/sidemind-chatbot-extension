@@ -14,6 +14,9 @@ export interface StorageSchema {
   sidemind_onboarding_completed: boolean;
   sidemind_telemetry_enabled: boolean;
 
+  // Custom User Persona & System Instructions
+  sidemind_user_persona?: string;
+
   // Encrypted API keys
   sidemind_keys_encrypted: {
     openai?: string;

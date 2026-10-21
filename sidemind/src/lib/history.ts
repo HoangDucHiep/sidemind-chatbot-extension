@@ -14,6 +14,7 @@ export interface ConversationMeta {
   pageType?: string;
   tags: string[];
   messageCount: number;
+  summaryState?: string;
 }
 
 export interface Conversation extends ConversationMeta {
@@ -76,6 +77,7 @@ export const historyService = {
       pageType: convo.pageType,
       tags: convo.tags || [],
       messageCount: convo.messages.length,
+      summaryState: convo.summaryState,
     };
 
     // Remove existing if updating, place at front (LRU)

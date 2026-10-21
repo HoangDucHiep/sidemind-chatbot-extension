@@ -1,14 +1,20 @@
 // SideMind · Chat State Store (Zustand)
+// Enhanced with 3-Tier Memory Architecture & Session Dreaming (Phase 2)
 
 import { create } from "zustand";
 import { type AiProvider, streamChat, DEFAULT_MODELS } from "../lib/ai";
 import { buildSystemPrompt } from "../lib/context/prompts";
+import {
+  assembleThreeTierPayload,
+  splitMemoryTiers,
+  summarizeSessionHistory,
+  shouldTriggerSessionDreaming,
+} from "../lib/context/memory";
 import { storage } from "../lib/storage";
 import { getDecryptedApiKey } from "../lib/crypto";
 import { historyService } from "../lib/history";
 import { useContextStore } from "./useContext";
 import { useMultiTabStore } from "./useMultiTab";
-
 import { type FileAttachment } from "../lib/file-extractor";
 
 export interface ChatMessage {
@@ -22,24 +28,30 @@ export interface ChatMessage {
 
 interface ChatState {
   messages: ChatMessage[];
+  summaryState: string;
   isStreaming: boolean;
+  isSummarizingMemory: boolean;
   activeProvider: AiProvider;
   activeModel: string;
   abortController: AbortController | null;
 
   setProvider: (provider: AiProvider) => void;
   setModel: (model: string) => void;
+  setSummaryState: (summary: string) => void;
   sendMessage: (
     prompt: string,
     attachments?: FileAttachment[],
   ) => Promise<void>;
+  triggerSessionDreaming: () => Promise<void>;
   stopStreaming: () => void;
   clearChat: () => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
+  summaryState: "",
   isStreaming: false,
+  isSummarizingMemory: false,
   activeProvider: "gemini",
   activeModel: DEFAULT_MODELS.gemini,
   abortController: null,
@@ -54,6 +66,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setModel: (model: string) => {
     set({ activeModel: model });
     storage.set("sidemind_active_model", model);
+  },
+
+  setSummaryState: (summary: string) => {
+    set({ summaryState: summary });
   },
 
   sendMessage: async (userPrompt: string, attachments?: FileAttachment[]) => {
@@ -80,6 +96,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timestamp: Date.now(),
     };
 
+    const previousMessages = get().messages;
+
     set((state) => ({
       messages: [...state.messages, userMsg, assistantMsg],
       isStreaming: true,
@@ -88,32 +106,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const abortController = new AbortController();
     set({ abortController });
 
-    const { activeProvider, activeModel, messages } = get();
+    const { activeProvider, activeModel, summaryState } = get();
     const context = useContextStore.getState().context;
     const extraTabs = useMultiTabStore
       .getState()
       .sources.filter((s) => s.status === "ready");
-    const systemPrompt = buildSystemPrompt(context || undefined, extraTabs);
+
+    // Retrieve custom persona and build dynamic budget system prompt
+    const userPersona = await storage.get("sidemind_user_persona");
+    const systemPrompt = buildSystemPrompt(
+      context || undefined,
+      extraTabs,
+      userPersona,
+      activeModel,
+      attachments,
+      trimmed,
+    );
 
     // Retrieve decrypted API key for active provider
     const apiKey = await getDecryptedApiKey(activeProvider);
     const temperature = (await storage.get("sidemind_temperature")) ?? 0.7;
     const maxTokens = (await storage.get("sidemind_max_tokens")) ?? 2048;
 
-    // Build payload messages
-    const payload = [
-      { role: "system" as const, content: systemPrompt },
-      ...messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        attachments: m.attachments,
-      })),
-      {
-        role: "user" as const,
-        content: trimmed,
-        attachments,
-      },
-    ];
+    // Assemble 3-Tier Memory payload:
+    // Tier 3: System Prompt (Context + Tabs + Persona)
+    // Tier 2: Summary State (Condensed previous memory)
+    // Tier 1: Working Memory (Up to 4 recent messages + new user message)
+    const payload = assembleThreeTierPayload({
+      systemPrompt,
+      summaryState,
+      previousMessages,
+      newPrompt: trimmed,
+      attachments,
+      workingMemoryCount: 4,
+    });
 
     try {
       if (!apiKey) {
@@ -146,8 +172,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set({ isStreaming: false, abortController: null });
 
-      // Save updated conversation to history
+      // Save updated conversation to history (including summaryState)
       const currentMessages = get().messages;
+      const currentSummary = get().summaryState;
       const firstUserMsg =
         currentMessages.find((m) => m.role === "user")?.content ||
         "Conversation";
@@ -164,8 +191,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
         pageType: context?.pageType,
         tags: [context?.pageType || "general", activeProvider],
         messageCount: currentMessages.length,
+        summaryState: currentSummary,
         messages: currentMessages,
       });
+
+      // Trigger background Session Dreaming if threshold reached
+      if (
+        shouldTriggerSessionDreaming(currentMessages.length) &&
+        !get().isSummarizingMemory
+      ) {
+        // Run in background without awaiting so user can interact immediately
+        get().triggerSessionDreaming();
+      }
     } catch (err: any) {
       if (err.name === "AbortError") {
         // User stopped manually
@@ -190,6 +227,67 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  triggerSessionDreaming: async () => {
+    const { messages, summaryState, activeProvider, activeModel, isSummarizingMemory } =
+      get();
+    if (isSummarizingMemory || messages.length < 6) return;
+
+    const { toCompress } = splitMemoryTiers(messages, 4);
+    if (toCompress.length === 0) return;
+
+    set({ isSummarizingMemory: true });
+
+    try {
+      const apiKey = await getDecryptedApiKey(activeProvider);
+      if (!apiKey) {
+        set({ isSummarizingMemory: false });
+        return;
+      }
+
+      const newSummary = await summarizeSessionHistory({
+        previousSummary: summaryState,
+        messagesToSummarize: toCompress,
+        provider: activeProvider,
+        apiKey,
+        model: activeModel,
+      });
+
+      if (newSummary && newSummary.trim().length > 0) {
+        set({ summaryState: newSummary, isSummarizingMemory: false });
+
+        // Update history with fresh summary
+        const currentMessages = get().messages;
+        if (currentMessages.length > 0) {
+          const firstUserMsg =
+            currentMessages.find((m) => m.role === "user")?.content ||
+            "Conversation";
+          const title =
+            firstUserMsg.slice(0, 32) + (firstUserMsg.length > 32 ? "…" : "");
+
+          const context = useContextStore.getState().context;
+          historyService.save({
+            id: currentMessages[0]?.id || `convo-${Date.now()}`,
+            title,
+            timestamp: Date.now(),
+            model: activeModel,
+            provider: activeProvider,
+            pageUrl: context?.url,
+            pageType: context?.pageType,
+            tags: [context?.pageType || "general", activeProvider],
+            messageCount: currentMessages.length,
+            summaryState: newSummary,
+            messages: currentMessages,
+          });
+        }
+      } else {
+        set({ isSummarizingMemory: false });
+      }
+    } catch (err) {
+      console.warn("Session Dreaming error:", err);
+      set({ isSummarizingMemory: false });
+    }
+  },
+
   stopStreaming: () => {
     const { abortController } = get();
     if (abortController) {
@@ -200,6 +298,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   clearChat: () => {
     get().stopStreaming();
-    set({ messages: [] });
+    set({ messages: [], summaryState: "", isSummarizingMemory: false });
   },
 }));

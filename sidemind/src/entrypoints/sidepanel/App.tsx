@@ -25,6 +25,8 @@ export const App: React.FC = () => {
 
   const {
     messages,
+    summaryState,
+    isSummarizingMemory,
     isStreaming,
     activeProvider,
     setProvider,
@@ -419,6 +421,56 @@ export const App: React.FC = () => {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Session Dreaming & Memory Condensed Indicator */}
+      {summaryState && (
+        <div
+          style={{
+            padding: "3px 12px",
+            background: "var(--paper)",
+            borderBottom: "var(--hairline)",
+            fontSize: "10px",
+            color: "var(--accent)",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            flexShrink: 0,
+          }}
+          title={summaryState}
+        >
+          <span>🧠</span>
+          <span style={{ fontWeight: 600 }}>Memory Condensed</span>
+          <span
+            style={{
+              color: "var(--muted)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "240px",
+            }}
+          >
+            — {summaryState}
+          </span>
+        </div>
+      )}
+      {isSummarizingMemory && (
+        <div
+          style={{
+            padding: "3px 12px",
+            background: "var(--paper)",
+            borderBottom: "var(--hairline)",
+            fontSize: "10px",
+            color: "var(--muted)",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            flexShrink: 0,
+          }}
+        >
+          <span>✨</span>
+          <span>Consolidating memory (Session Dreaming)…</span>
         </div>
       )}
 

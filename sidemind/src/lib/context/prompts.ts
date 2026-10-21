@@ -1,66 +1,52 @@
-// SideMind · Context Prompts & System Templates
-
 import { type PageContext } from "./types";
 import { type TabSource } from "../../store/useMultiTab";
+import { type FileAttachment } from "../file-extractor";
+
+import {
+  calculateTokenBudget,
+  truncateTextToTokenBudget,
+} from "./budget";
+import { retrieveRagContext } from "./rag";
 
 export function buildSystemPrompt(
   context?: PageContext,
   extraTabs?: TabSource[],
+  userPersona?: string,
+  modelId?: string,
+  attachments?: FileAttachment[],
+  userQuery?: string,
 ): string {
-  const basePrompt = `You are SideMind, an intelligent AI assistant integrated into the browser sidebar.
+  const budget = calculateTokenBudget(modelId);
+
+  let basePrompt = `You are SideMind, an intelligent AI assistant integrated into the browser sidebar.
 Your goal is to provide accurate, concise, and helpful answers based on the user's active webpage context and attached resources.
 
 GUIDELINES:
 1. Ground your answers in the provided context and attached files whenever relevant.
 2. When referencing specific statements or data from the main page context, include numbered citations formatted like [1], [2].
 3. When referencing extra tab sources, include tab-prefixed citations formatted like [tab1] [1], [tab2] [2].
-4. Use clean Markdown formatting (headings, bullet points, bold text, code blocks) to make your answers easy to read.
-5. If the user asks in Vietnamese, respond in Vietnamese. If the user asks in English, respond in English.
-6. If the context does not contain the answer, answer based on your general knowledge and clearly state that it is not mentioned on the current page.`;
+4. When referencing attached local files, include file-prefixed citations formatted like [file1] [1], [file2] [2].
+5. Use clean Markdown formatting (headings, bullet points, bold text, code blocks) to make your answers easy to read.
+6. If the user asks in Vietnamese, respond in Vietnamese. If the user asks in English, respond in English.
+7. If the context does not contain the answer, answer based on your general knowledge and clearly state that it is not mentioned on the current page.`;
 
-  let contextBlock = "";
-
-  if (context && context.text) {
-    contextBlock += `\n\n--- ACTIVE WEBPAGE CONTEXT (${context.pageType.toUpperCase()}) ---`;
-    contextBlock += `\nTitle: ${context.title}`;
-    contextBlock += `\nURL: ${context.url}\n`;
-
-    if (context.sentences && context.sentences.length > 0) {
-      contextBlock += `\nNumbered Content Chunks:\n`;
-      const chunks = context.sentences.slice(0, 35);
-      for (const chunk of chunks) {
-        const extra = chunk.timestampStr
-          ? ` (Time: ${chunk.timestampStr})`
-          : chunk.pageNumber
-            ? ` (Page ${chunk.pageNumber})`
-            : "";
-        contextBlock += `[${chunk.id}]${extra} ${chunk.text}\n`;
-      }
-    } else {
-      contextBlock += `\nContent:\n${context.text.slice(0, 6000)}`;
-    }
-    contextBlock += `\n--- END ACTIVE CONTEXT ---\n`;
+  // Inject Custom User Persona & Preferences if present
+  if (userPersona && userPersona.trim().length > 0) {
+    const personaInstruction = truncateTextToTokenBudget(
+      userPersona.trim(),
+      budget.systemAndPersonaBudget,
+    );
+    basePrompt += `\n\n--- USER PREFERENCES & PERSONA ---\n${personaInstruction}\n--- END USER PREFERENCES ---`;
   }
 
-  // Include multi-tab contexts if present
-  if (extraTabs && extraTabs.length > 0) {
-    extraTabs.forEach((tab, index) => {
-      const tabNum = index + 1;
-      const tabCtx = tab.context;
-      contextBlock += `\n\n--- EXTRA TAB SOURCE [tab${tabNum}]: ${tab.title} ---`;
-      contextBlock += `\nURL: ${tab.url}\n`;
-      if (tabCtx && tabCtx.sentences && tabCtx.sentences.length > 0) {
-        contextBlock += `\nNumbered Content Chunks:\n`;
-        const chunks = tabCtx.sentences.slice(0, 20);
-        for (const chunk of chunks) {
-          contextBlock += `[tab${tabNum}] [${chunk.id}] ${chunk.text}\n`;
-        }
-      } else if (tabCtx?.text) {
-        contextBlock += `\nContent:\n${tabCtx.text.slice(0, 3000)}`;
-      }
-      contextBlock += `\n--- END TAB [tab${tabNum}] ---\n`;
-    });
-  }
+  // Retrieve relevant context chunks using Client-side Local RAG (MiniSearch)
+  const contextBlock = retrieveRagContext({
+    context,
+    extraTabs,
+    attachments,
+    query: userQuery,
+    maxTokens: budget.webAndFileContextBudget,
+  });
 
   return basePrompt + contextBlock;
 }

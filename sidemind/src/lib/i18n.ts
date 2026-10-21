@@ -104,6 +104,11 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     "settings.general.defaultModel": "Default Model",
     "settings.general.temperature": "Temperature (Creativity)",
     "settings.general.maxTokens": "Max Output Tokens",
+    "settings.general.personaTitle": "User Persona & Preferences",
+    "settings.general.personaDesc":
+      "Instructions injected into every AI prompt (e.g. your role, preferred tone, format style).",
+    "settings.general.personaPlaceholder":
+      "e.g. I am a TypeScript developer. Always respond in Vietnamese with concise bullet points and code samples...",
     "settings.general.saved": "Saved automatically",
 
     // Privacy & Backup Tab
@@ -240,6 +245,11 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     "settings.general.defaultModel": "Mô hình mặc định",
     "settings.general.temperature": "Nhiệt độ sáng tạo (Temperature)",
     "settings.general.maxTokens": "Độ dài tối đa (Max Tokens)",
+    "settings.general.personaTitle": "Hồ sơ & Phong cách cá nhân",
+    "settings.general.personaDesc":
+      "Hướng dẫn được tự động đính kèm vào mọi phiên chat AI (ví dụ: vai trò, ngôn ngữ ưu tiên, phong cách).",
+    "settings.general.personaPlaceholder":
+      "Ví dụ: Tôi là lập trình viên TypeScript. Hãy trả lời bằng Tiếng Việt ngắn gọn, ưu tiên gạch đầu dòng và ví dụ code...",
     "settings.general.saved": "Đã tự động lưu",
 
     // Privacy & Backup Tab

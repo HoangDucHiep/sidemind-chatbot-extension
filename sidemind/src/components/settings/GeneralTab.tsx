@@ -16,6 +16,7 @@ export const GeneralTab: React.FC = () => {
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(2048);
   const [fontSize, setFontSize] = useState<"sm" | "md" | "lg">("md");
+  const [userPersona, setUserPersona] = useState("");
   const [saveStatus, setSaveStatus] = useState(false);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export const GeneralTab: React.FC = () => {
       .get("sidemind_max_tokens")
       .then((tok) => tok !== undefined && setMaxTokens(tok));
     storage.get("sidemind_font_size").then((f) => f && setFontSize(f));
+    storage.get("sidemind_user_persona").then((p) => p !== undefined && setUserPersona(p));
   }, []);
 
   const triggerSaveIndicator = () => {
@@ -67,6 +69,12 @@ export const GeneralTab: React.FC = () => {
   const handleFontSizeChange = (f: "sm" | "md" | "lg") => {
     setFontSize(f);
     storage.set("sidemind_font_size", f);
+    triggerSaveIndicator();
+  };
+
+  const handlePersonaChange = (val: string) => {
+    setUserPersona(val);
+    storage.set("sidemind_user_persona", val);
     triggerSaveIndicator();
   };
 
@@ -218,6 +226,21 @@ export const GeneralTab: React.FC = () => {
             />
           </div>
         </div>
+      </div>
+
+      {/* User Persona & Preferences */}
+      <div className="card">
+        <h4 className="card-title">{t("settings.general.personaTitle")}</h4>
+        <p className="text-xs text-muted" style={{ margin: "4px 0 8px 0" }}>
+          {t("settings.general.personaDesc")}
+        </p>
+        <textarea
+          className="input"
+          style={{ width: "100%", height: "80px", resize: "vertical", fontSize: "13px" }}
+          placeholder={t("settings.general.personaPlaceholder")}
+          value={userPersona}
+          onChange={(e) => handlePersonaChange(e.target.value)}
+        />
       </div>
     </div>
   );

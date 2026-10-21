@@ -45,6 +45,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         messages: fullConvo.messages,
         activeProvider: fullConvo.provider,
         activeModel: fullConvo.model,
+        summaryState: fullConvo.summaryState || "",
       });
       onClose();
     }
